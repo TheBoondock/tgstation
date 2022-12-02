@@ -73,7 +73,7 @@
 	icon = 'icons/obj/food/frozen_treats.dmi'
 	icon_state = "flavorless_sc"
 	w_class = WEIGHT_CLASS_SMALL
-	trash_type = /obj/item/reagent_containers/food/drinks/sillycup //We dont eat paper cups
+	trash_type = /obj/item/reagent_containers/cup/glass/sillycup //We dont eat paper cups
 	food_reagents = list(/datum/reagent/water = 11) // We dont get food for water/juices
 	tastes = list("ice" = 1, "water" = 1)
 	foodtypes = SUGAR //We use SUGAR as a base line to act in as junkfood, other wise we use fruit
@@ -117,7 +117,7 @@
 	icon_state = "orange_sc"
 	food_reagents = list(/datum/reagent/consumable/nutriment = 1, /datum/reagent/consumable/orangejuice = 5, /datum/reagent/water = 11)
 	tastes = list("ice" = 1, "water" = 1, "orange" = 5)
-	foodtypes = FRUIT
+	foodtypes = FRUIT | ORANGES
 
 /obj/item/food/snowcones/blue
 	name = "bluecherry snowcone"
@@ -149,7 +149,7 @@
 	icon_state = "fruitsalad_sc"
 	food_reagents = list(/datum/reagent/consumable/nutriment = 1, /datum/reagent/consumable/lemonjuice = 5, /datum/reagent/consumable/limejuice = 5, /datum/reagent/consumable/orangejuice = 5, /datum/reagent/water = 11)
 	tastes = list("ice" = 1, "water" = 1, "oranges" = 5, "limes" = 5, "lemons" = 5, "citrus" = 5, "salad" = 5)
-	foodtypes = FRUIT
+	foodtypes = FRUIT | ORANGES
 
 /obj/item/food/snowcones/pineapple
 	name = "pineapple snowcone"
@@ -239,19 +239,8 @@
 	update_icon() // make sure the popsicle overlay is primed so it's not just a stick until you start eating it
 
 /obj/item/food/popsicle/MakeEdible()
-	AddComponent(/datum/component/edible,\
-				initial_reagents = food_reagents,\
-				food_flags = food_flags,\
-				foodtypes = foodtypes,\
-				volume = max_volume,\
-				eat_time = eat_time,\
-				tastes = tastes,\
-				eatverbs = eatverbs,\
-				bite_consumption = bite_consumption,\
-				microwaved_type = microwaved_type,\
-				junkiness = junkiness,\
-				after_eat = CALLBACK(src, .proc/after_bite))
-
+	. = ..()
+	AddComponent(/datum/component/edible, after_eat = CALLBACK(src, PROC_REF(after_bite)))
 
 /obj/item/food/popsicle/update_overlays()
 	. = ..()
@@ -277,7 +266,7 @@
 	name = "orange creamsicle"
 	desc = "A classic orange creamsicle. A sunny frozen treat."
 	food_reagents = list(/datum/reagent/consumable/orangejuice = 4, /datum/reagent/consumable/cream = 2, /datum/reagent/consumable/vanilla = 2, /datum/reagent/consumable/sugar = 4)
-	foodtypes = FRUIT | DAIRY | SUGAR
+	foodtypes = FRUIT | DAIRY | SUGAR | ORANGES
 
 /obj/item/food/popsicle/creamsicle_berry
 	name = "berry creamsicle"
@@ -292,12 +281,12 @@
 	food_reagents = list(/datum/reagent/consumable/hot_coco = 4, /datum/reagent/consumable/cream = 2, /datum/reagent/consumable/vanilla = 3, /datum/reagent/consumable/sugar = 2)
 	overlay_state = "jumbo"
 
-/obj/item/food/popsicle/nogga_black
-	name = "nogga black"
-	desc = "A salty licorice icecream recently reintroduced due to all records of the controversy being lost to time. Those who cannot remember the past are doomed to repeat it."
+/obj/item/food/popsicle/licorice_creamsicle
+	name = "Void Bar™"
+	desc = "A salty licorice icecream. A salty frozen treat."
 	food_reagents = list(/datum/reagent/consumable/nutriment = 4, /datum/reagent/consumable/salt = 1,  /datum/reagent/consumable/cream = 2, /datum/reagent/consumable/vanilla = 1, /datum/reagent/consumable/sugar = 4)
 	tastes = list("salty liquorice")
-	overlay_state = "nogga_black"
+	overlay_state = "licorice_creamsicle"
 
 /obj/item/food/cornuto
 	name = "cornuto"

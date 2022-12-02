@@ -79,6 +79,7 @@
 	density = TRUE
 	deconstructible = FALSE
 	layer = EDGED_TURF_LAYER
+	plane = GAME_PLANE_UPPER
 /**
  * A variety of statue in disrepair; parts are broken off and a gemstone is missing
  */
@@ -104,6 +105,7 @@
 	icon_state = "frontwalltop"
 	density = FALSE
 	layer = ABOVE_ALL_MOB_LAYER //except for the stairs tile, which should be set to OBJ_LAYER aka 3.
+	plane = ABOVE_GAME_PLANE
 
 
 /obj/structure/fluff/bus/passable/seat
@@ -112,6 +114,7 @@
 	icon_state = "backseat"
 	pixel_y = 17
 	layer = OBJ_LAYER
+	plane = GAME_PLANE
 
 
 /obj/structure/fluff/bus/passable/seat/driver
@@ -189,10 +192,11 @@
 	desc = "A towering link of chains leading up to the ceiling."
 	icon = 'icons/effects/32x96.dmi'
 	icon_state = "chain"
-	layer = ABOVE_OBJ_LAYER
 	anchored = TRUE
 	density = TRUE
 	deconstructible = FALSE
+	layer = ABOVE_ALL_MOB_LAYER
+	plane = ABOVE_GAME_PLANE
 
 /obj/structure/fluff/beach_towel
 	name = "beach towel"
@@ -269,8 +273,8 @@
 	desc = "Great for trams, not so great for skating."
 	icon = 'icons/obj/tram_rails.dmi'
 	icon_state = "rail"
-	layer = ABOVE_OPEN_TURF_LAYER
-	plane = FLOOR_PLANE
+	layer = TRAM_RAIL_LAYER
+	plane = GAME_PLANE
 	deconstructible = TRUE
 
 /obj/structure/fluff/tram_rail/floor

@@ -6,7 +6,7 @@
 	var/obj/item/item_pawn = controller.pawn
 	var/mob/item_holder = item_pawn.loc
 	if(!istype(item_holder))
-		finish_action(controller, FALSE) //We're no longer beind held. abort abort!!
+		finish_action(controller, FALSE) //We're no longer being held. abort abort!!
 	item_pawn.visible_message(span_warning("[item_pawn] slips out of the hands of [item_holder]!"))
 	item_holder.dropItemToGround(item_pawn, TRUE)
 	finish_action(controller, TRUE)
@@ -25,7 +25,7 @@
 /datum/ai_behavior/item_move_close_and_attack/setup(datum/ai_controller/controller, target_key, throw_count_key)
 	. = ..()
 	var/datum/weakref/target_ref = controller.blackboard[target_key]
-	controller.current_movement_target = target_ref?.resolve()
+	controller.set_movement_target(target_ref?.resolve())
 
 /datum/ai_behavior/item_move_close_and_attack/perform(delta_time, datum/ai_controller/controller, target_key, throw_count_key)
 	. = ..()
@@ -56,7 +56,5 @@
 
 /datum/ai_behavior/item_move_close_and_attack/ghostly/haunted/finish_action(datum/ai_controller/controller, succeeded, target_key, throw_count_key)
 	var/datum/weakref/target_ref = controller.blackboard[target_key]
-	var/atom/throw_target = target_ref?.resolve()
-	var/list/hauntee_list = controller.blackboard[BB_TO_HAUNT_LIST]
-	hauntee_list[throw_target]--
+	controller.blackboard[BB_TO_HAUNT_LIST][target_ref]--
 	return ..()

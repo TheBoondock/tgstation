@@ -2,6 +2,7 @@
 // note: if you add more HUDs, even for non-human atoms, make sure to use unique numbers for the defines!
 // /datum/atom_hud expects these to be unique
 // these need to be strings in order to make them associative lists
+
 /// dead, alive, sick, health status
 #define HEALTH_HUD "1"
 /// a simple line rounding the mob's number health
@@ -44,6 +45,8 @@
 #define ANTAG_HUD "23"
 // for fans to identify pins
 #define FAN_HUD "24"
+/// Mech camera HUD
+#define DIAG_CAMERA_HUD "25"
 
 //by default everything in the hud_list of an atom is an image
 //a value in hud_list with one of these will change that behavior
@@ -76,6 +79,7 @@
 #define SECHUD_NO_ID "hudno_id"
 #define SECHUD_UNKNOWN "hudunknown"
 #define SECHUD_CENTCOM "hudcentcom"
+#define SECHUD_SYNDICATE "hudsyndicate"
 
 #define SECHUD_ASSISTANT "hudassistant"
 #define SECHUD_ATMOSPHERIC_TECHNICIAN "hudatmospherictechnician"

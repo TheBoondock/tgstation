@@ -7,8 +7,8 @@
 	move_resist = INFINITY
 	pressure_resistance = INFINITY
 	obj_flags = NONE
-	vis_flags = VIS_INHERIT_PLANE
 	blocks_emissive = EMISSIVE_BLOCK_GENERIC
+	uses_integrity = FALSE
 
 /obj/effect/attackby(obj/item/weapon, mob/user, params)
 	if(SEND_SIGNAL(weapon, COMSIG_ITEM_ATTACK_EFFECT, src, user, params) & COMPONENT_NO_AFTERATTACK)
@@ -40,6 +40,9 @@
 
 /obj/effect/singularity_act()
 	qdel(src)
+
+///The abstract effect ignores even more effects and is often typechecked for atoms that should truly not be fucked with.
+/obj/effect/abstract
 
 /obj/effect/abstract/singularity_pull()
 	return
