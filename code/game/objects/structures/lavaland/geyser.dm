@@ -133,6 +133,12 @@
 	var/layer_mode = FALSE
 	///What layer we set it to
 	var/target_layer = DUCT_LAYER_DEFAULT
+	///Used for bumpatack, have you seen what a wooden stick could do to you?
+	force = 2
+
+/obj/item/plunger/Initialize(mapload)
+	. = ..()
+	AddComponent(/datum/component/bumpattack, angry_bumper = TRUE, valid_inventory_slot = ITEM_SLOT_MASK)
 
 /obj/item/plunger/attack_atom(obj/O, mob/living/user, params)
 	if(layer_mode)

@@ -17,8 +17,10 @@
 	var/obj/item/proxy_weapon
 	///cool down between each hit
 	var/attack_cooldown = CLICK_CD_MELEE
+	///do we need to be on combat mode? default to no
+	var/angry_bumper = FALSE
 
-/datum/component/bumpattack/Initialize(valid_inventory_slot, obj/item/proxy_weapon)
+/datum/component/bumpattack/Initialize(valid_inventory_slot, obj/item/proxy_weapon, angry_bumper)
 	if(!isitem(parent))
 		return COMPONENT_INCOMPATIBLE
 	src.valid_inventory_slot = valid_inventory_slot
@@ -64,6 +66,8 @@
 	var/obj/item/our_weapon = proxy_weapon || parent
 	if(!istype(our_weapon))
 		CRASH("[our_weapon] somehow failed istype")
+ww	if(angry_bumper && bumper.combat_mode)
+		return
 	if(!TIMER_COOLDOWN_CHECK(src, COOLDOWN_BUMP_ATTACK))
 		TIMER_COOLDOWN_START(src, COOLDOWN_BUMP_ATTACK, attack_cooldown)
 		INVOKE_ASYNC(target, TYPE_PROC_REF(/atom, attackby), our_weapon, bumper)
