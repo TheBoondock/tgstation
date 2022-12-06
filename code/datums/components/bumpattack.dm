@@ -25,6 +25,7 @@
 		return COMPONENT_INCOMPATIBLE
 	src.valid_inventory_slot = valid_inventory_slot
 	src.proxy_weapon = proxy_weapon
+	src.angry_bumper = angry_bumper
 
 	return ..()
 
@@ -66,7 +67,7 @@
 	var/obj/item/our_weapon = proxy_weapon || parent
 	if(!istype(our_weapon))
 		CRASH("[our_weapon] somehow failed istype")
-ww	if(angry_bumper && bumper.combat_mode)
+	if(bumper.combat_mode && angry_bumper)
 		return
 	if(!TIMER_COOLDOWN_CHECK(src, COOLDOWN_BUMP_ATTACK))
 		TIMER_COOLDOWN_START(src, COOLDOWN_BUMP_ATTACK, attack_cooldown)
