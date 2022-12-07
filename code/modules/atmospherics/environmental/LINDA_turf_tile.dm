@@ -172,13 +172,17 @@
 		return
 
 	var/list/gases = air.gases
-
+	var/static/obj/effect/overlay/compressed_air/high_pressure = new
 	var/list/new_overlay_types
 	GAS_OVERLAYS(gases, new_overlay_types, src)
 
 	if (atmos_overlay_types)
+		if(length(atmos_overlay_types) > 1)
+			vis_contents -= high_pressure
 		for(var/overlay in atmos_overlay_types-new_overlay_types) //doesn't remove overlays that would only be added
 			vis_contents -= overlay
+	else if(length(gases))
+		new_overlay_types += high_pressure
 
 	if (length(new_overlay_types))
 		if (atmos_overlay_types)
