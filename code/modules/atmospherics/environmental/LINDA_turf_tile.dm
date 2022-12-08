@@ -173,14 +173,16 @@
 
 	var/list/gases = air.gases
 	var/high_pressure = air.return_pressure()
-	var/mutable_appearance/dense_gas = mutable_appearance('icons/effects/96x96.dmi', "smoke", plane = HIGH_GAME_PLANE, alpha = 50, appearance_flags = VIS_INHERIT_DIR | KEEP_APART)
-	pressurized_gas.appearance = dense_gas
+	var/mutable_appearance/dense_gas = mutable_appearance('icons/effects/96x96.dmi', "smoke", plane = HIGH_GAME_PLANE, alpha = 30, appearance_flags = VIS_INHERIT_DIR | KEEP_APART)
 	var/static/obj/effect/overlay/pressurized_gas = new
+	pressurized_gas.appearance = dense_gas
 	var/list/new_overlay_types
 	GAS_OVERLAYS(gases, new_overlay_types, src)
 
+	if (high_pressure >= 500)
+		new_overlay_types += pressurized_gas
 	if (atmos_overlay_types)
-		if(pressurized_gas in atmos_overlay_types && high_pressure < 500)
+		if(pressurized_gas in atmos_overlay_types && high_pressure < 500 || length(atmos_overlay_types > 1))
 			atmos_overlay_types -= pressurized_gas
 		for(var/overlay in atmos_overlay_types-new_overlay_types) //doesn't remove overlays that would only be added
 			vis_contents -= overlay
