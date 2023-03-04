@@ -4182,6 +4182,7 @@
 #include "code\modules\modular_computers\file_system\programs\signalcommander.dm"
 #include "code\modules\modular_computers\file_system\programs\skill_tracker.dm"
 #include "code\modules\modular_computers\file_system\programs\sm_monitor.dm"
+#include "code\modules\modular_computers\file_system\programs\social_rating.dm"
 #include "code\modules\modular_computers\file_system\programs\statusdisplay.dm"
 #include "code\modules\modular_computers\file_system\programs\techweb.dm"
 #include "code\modules\modular_computers\file_system\programs\theme_selector.dm"
