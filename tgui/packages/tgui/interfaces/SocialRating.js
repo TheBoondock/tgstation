@@ -1,4 +1,4 @@
-import { Section, Button, Box } from '../components';
+import { Section, Button, Box, Table } from '../components';
 import { NtosWindow } from '../layouts';
 
 export const SocialRating = (prop, context) => {
@@ -8,7 +8,18 @@ export const SocialRating = (prop, context) => {
         <Section
           title="Something"
           button={<Button icon="anything" content="anything" />}>
-          <Box> placeholder text </Box>
+          <Box> This is a crewmate rating app </Box>
+          <Table>
+            <Table.Row>
+              <Table.Cell bold>Hello world!</Table.Cell>
+              <Table.Cell collapsing color="label">
+                Label
+              </Table.Cell>
+            </Table.Row>
+          </Table>
+        </Section>
+        <Section title="Subheader">
+          This is the bodytext of this section
         </Section>
       </NtosWindow.Content>
     </NtosWindow>
