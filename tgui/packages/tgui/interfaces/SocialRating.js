@@ -1,26 +1,23 @@
-import { Section, Button, Box, Table } from '../components';
+import { Section, Table } from '../components';
 import { NtosWindow } from '../layouts';
+import { useBackend } from '../backend';
+import { map } from 'common/collections';
 
 export const SocialRating = (prop, context) => {
+  const { act, data } = useBackend(context);
+  const { Crewlist = {} } = data;
+  const modified = map((name, number) => (
+    <Table.Row key={name}>
+      <Table.Cell key={name}>
+        {name} {number}
+      </Table.Cell>
+    </Table.Row>
+  ));
   return (
     <NtosWindow width={600} height={500}>
       <NtosWindow.Content scrollable>
-        <Section
-          title="Something"
-          button={<Button icon="anything" content="anything" />}>
-          <Box> This is a crewmate rating app </Box>
-          <Table>
-            <Table.Row>
-              <Table.Cell bold>Hello world!</Table.Cell>
-              <Table.Cell collapsing color="label">
-                Label
-              </Table.Cell>
-            </Table.Row>
-          </Table>
-        </Section>
-        <Section title="Subheader">
-          This is the bodytext of this section
-        </Section>
+        <Section title="Crew Ratings" />
+        {modified}
       </NtosWindow.Content>
     </NtosWindow>
   );

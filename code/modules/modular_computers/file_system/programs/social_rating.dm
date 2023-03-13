@@ -7,4 +7,8 @@
 	tgui_id = "SocialRating"
 	program_icon_state = "rating_icon"
 
+/datum/computer_file/program/social_rating/ui_data(mob/user)
+	var/list/data = list()
+	data["crew_list"] = GLOB.manifest.get_manifest()
+	return data
 
