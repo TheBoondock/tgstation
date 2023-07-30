@@ -42,6 +42,8 @@ GLOBAL_LIST_INIT(turfs_openspace, typecacheof(list(
 
 #define isfloorturf(A) (istype(A, /turf/open/floor))
 
+#define ismiscturf(A) (istype(A, /turf/open/misc))
+
 #define isclosedturf(A) (istype(A, /turf/closed))
 
 #define isindestructiblewall(A) (istype(A, /turf/closed/indestructible))
@@ -59,6 +61,8 @@ GLOBAL_LIST_INIT(turfs_openspace, typecacheof(list(
 #define isasteroidturf(A) (istype(A, /turf/open/misc/asteroid))
 
 #define istransparentturf(A) (HAS_TRAIT(A, TURF_Z_TRANSPARENT_TRAIT))
+
+#define iscliffturf(A) (istype(A, /turf/open/cliff))
 
 //Mobs
 #define isliving(A) (istype(A, /mob/living))
@@ -188,6 +192,8 @@ GLOBAL_LIST_INIT(turfs_openspace, typecacheof(list(
 
 #define isitem(A) (istype(A, /obj/item))
 
+#define isfish(A) (istype(A, /obj/item/fish))
+
 #define isstack(A) (istype(A, /obj/item/stack))
 
 #define isgrenade(A) (istype(A, /obj/item/grenade))
@@ -202,7 +208,11 @@ GLOBAL_LIST_INIT(turfs_openspace, typecacheof(list(
 
 #define isstructure(A) (istype(A, /obj/structure))
 
+#define isaquarium(A) (istype(A, /obj/structure/aquarium))
+
 #define ismachinery(A) (istype(A, /obj/machinery))
+
+#define isvendor(A) (istype(A, /obj/machinery/vending))
 
 #define isvehicle(A) (istype(A, /obj/vehicle))
 
@@ -265,7 +275,8 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 GLOBAL_LIST_INIT(book_types, typecacheof(list(
 	/obj/item/book,
 	/obj/item/spellbook,
-	/obj/item/storage/book)))
+	/obj/item/infuser_book,
+)))
 
 // Jobs
 #define is_job(job_type)  (istype(job_type, /datum/job))

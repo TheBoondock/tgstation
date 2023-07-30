@@ -10,7 +10,7 @@
 
 /datum/status_effect/organ_set_bonus/fly/enable_bonus()
 	. = ..()
-	if(!ishuman(owner))
+	if(!. || !ishuman(owner))
 		return
 	var/mob/living/carbon/human/new_fly = owner
 	if(isflyperson(new_fly))
@@ -37,6 +37,9 @@
 	icon = 'icons/obj/medical/organs/fly_organs.dmi'
 	say_mod = "buzzes"
 	taste_sensitivity = 25 // you eat vomit, this is a mercy
+	liked_foodtypes = GROSS | GORE // nasty ass
+	disliked_foodtypes = NONE
+	toxic_foodtypes = NONE // these fucks eat vomit, i am sure they can handle drinking bleach or whatever too
 	modifies_speech = TRUE
 	languages_native = list(/datum/language/buzzwords)
 

@@ -10,9 +10,14 @@
 	attack_verb_continuous = list("pokes")
 	attack_verb_simple = list("poke")
 	var/fail_message = "invalid user!"
-	var/selfdestruct = FALSE // Explode when user check is failed.
-	var/force_replace = FALSE // Can forcefully replace other pins.
-	var/pin_removeable = FALSE // Can be replaced by any pin.
+	/// Explode when user check is failed.
+	var/selfdestruct = FALSE
+	/// Can forcefully replace other pins.
+	var/force_replace = FALSE
+	/// Can be replaced by any pin.
+	var/pin_hot_swappable = FALSE
+	///Can be removed from the gun using tools or replaced by a pin with force_replace
+	var/pin_removable = TRUE
 	var/obj/item/gun/gun
 
 /obj/item/firing_pin/New(newloc)
@@ -27,8 +32,7 @@
 			. |= AFTERATTACK_PROCESSED_ITEM
 			var/obj/item/gun/targetted_gun = target
 			var/obj/item/firing_pin/old_pin = targetted_gun.pin
-			if(old_pin && (force_replace || old_pin.pin_removeable))
-				balloon_alert(user, "firing pin removed")
+			if(old_pin?.pin_removable && (force_replace || old_pin.pin_hot_swappable))
 				if(Adjacent(user))
 					user.put_in_hands(old_pin)
 				else
@@ -39,17 +43,21 @@
 				if(!user.temporarilyRemoveItemFromInventory(src))
 					return .
 				if(gun_insert(user, targetted_gun))
-					balloon_alert(user, "firing pin inserted.")
+					if(old_pin)
+						balloon_alert(user, "swapped firing pin")
+					else
+						balloon_alert(user, "inserted firing pin")
 			else
 				to_chat(user, span_notice("This firearm already has a firing pin installed."))
 
 			return .
 
-/obj/item/firing_pin/emag_act(mob/user)
+/obj/item/firing_pin/emag_act(mob/user, obj/item/card/emag/emag_card)
 	if(obj_flags & EMAGGED)
-		return
+		return FALSE
 	obj_flags |= EMAGGED
-	to_chat(user, span_notice("You override the authentication mechanism."))
+	balloon_alert(user, "authentication checks overridden")
+	return TRUE
 
 /obj/item/firing_pin/proc/gun_insert(mob/living/user, obj/item/gun/G)
 	gun = G
@@ -87,7 +95,7 @@
 	name = "test-range firing pin"
 	desc = "This safety firing pin allows weapons to be fired within proximity to a firing range."
 	fail_message = "test range check failed!"
-	pin_removeable = TRUE
+	pin_hot_swappable = TRUE
 
 /obj/item/firing_pin/test_range/pin_auth(mob/living/user)
 	if(!istype(user))
@@ -216,12 +224,12 @@
 	color = "#FFD700"
 	fail_message = ""
 	///list of account IDs which have accepted the license prompt. If this is the multi-payment pin, then this means they accepted the waiver that each shot will cost them money
-	var/list/gun_owners = list() 
+	var/list/gun_owners = list()
 	///how much gets paid out to license yourself to the gun
-	var/payment_amount 
+	var/payment_amount
 	var/datum/bank_account/pin_owner
 	///if true, user has to pay everytime they fire the gun
-	var/multi_payment = FALSE 
+	var/multi_payment = FALSE
 	var/owned = FALSE
 	///purchase prompt to prevent spamming it, set to the user who opens to prompt to prevent locking the gun up for other users.
 	var/active_prompt_user
@@ -314,10 +322,10 @@
 					pin_owner.adjust_money(payment_amount, "Firing Pin: Gun License Bought")
 				gun_owners += credit_card_details
 				to_chat(user, span_notice("Gun license purchased, have a secure day!"))
-					
-			else 
+
+			else
 				to_chat(user, span_warning("ERROR: User balance insufficent for successful transaction!"))
- 
+
 		if("No", null)
 			to_chat(user, span_warning("ERROR: User has declined to purchase gun license!"))
 	active_prompt_user = null

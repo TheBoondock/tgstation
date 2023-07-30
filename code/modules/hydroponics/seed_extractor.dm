@@ -44,7 +44,7 @@
 /obj/machinery/seed_extractor
 	name = "seed extractor"
 	desc = "Extracts and bags seeds from produce."
-	icon = 'icons/obj/hydroponics/equipment.dmi'
+	icon = 'icons/obj/service/hydroponics/equipment.dmi'
 	icon_state = "sextractor"
 	density = TRUE
 	circuit = /obj/item/circuitboard/machine/seed_extractor
@@ -80,8 +80,8 @@
 	. = ..()
 	for(var/datum/stock_part/matter_bin/matter_bin in component_parts)
 		max_seeds = initial(max_seeds) * matter_bin.tier
-	for(var/datum/stock_part/manipulator/manipulator in component_parts)
-		seed_multiplier = initial(seed_multiplier) * manipulator.tier
+	for(var/datum/stock_part/servo/servo in component_parts)
+		seed_multiplier = initial(seed_multiplier) * servo.tier
 
 /obj/machinery/seed_extractor/examine(mob/user)
 	. = ..()
@@ -100,7 +100,7 @@
 	if(default_deconstruction_screwdriver(user, "sextractor_open", "sextractor", attacking_item))
 		return TRUE
 
-	if(default_pry_open(attacking_item))
+	if(default_pry_open(attacking_item, close_after_pry = TRUE))
 		return TRUE
 
 	if(default_deconstruction_crowbar(attacking_item))

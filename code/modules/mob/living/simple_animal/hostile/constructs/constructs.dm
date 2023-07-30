@@ -53,8 +53,7 @@
 /mob/living/simple_animal/hostile/construct/Initialize(mapload)
 	. = ..()
 	AddElement(/datum/element/simple_flying)
-	ADD_TRAIT(src, TRAIT_HEALS_FROM_CULT_PYLONS, INNATE_TRAIT)
-	ADD_TRAIT(src, TRAIT_SPACEWALK, INNATE_TRAIT)
+	add_traits(list(TRAIT_HEALS_FROM_CULT_PYLONS, TRAIT_SPACEWALK), INNATE_TRAIT)
 	for(var/spell in construct_spells)
 		var/datum/action/new_spell = new spell(src)
 		new_spell.Grant(src)
@@ -81,8 +80,6 @@
 	to_chat(src, playstyle_string)
 
 /mob/living/simple_animal/hostile/construct/examine(mob/user)
-	var/pronoun = p_they(TRUE)
-	var/plural = p_s()
 	var/text_span
 	switch(theme)
 		if(THEME_CULT)
@@ -94,9 +91,9 @@
 	. = list("<span class='[text_span]'>This is [icon2html(src, user)] \a <b>[src]</b>!\n[desc]")
 	if(health < maxHealth)
 		if(health >= maxHealth/2)
-			. += span_warning("[pronoun] look[plural] slightly dented.")
+			. += span_warning("[p_They()] look[p_s()] slightly dented.")
 		else
-			. += span_warning("<b>[pronoun] look[plural] severely dented!</b>")
+			. += span_warning("<b>[p_They()] look[p_s()] severely dented!</b>")
 	. += "</span>"
 
 /mob/living/simple_animal/hostile/construct/attack_animal(mob/living/simple_animal/user, list/modifiers)

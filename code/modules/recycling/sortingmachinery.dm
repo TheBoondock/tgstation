@@ -131,7 +131,7 @@
 		if(wrapping_paper.use(3))
 			user.visible_message(span_notice("[user] wraps the package in festive paper!"))
 			giftwrapped = TRUE
-			greyscale_config = text2path("/datum/greyscale_config/[icon_state]")
+			greyscale_config = text2path("/datum/greyscale_config/gift[icon_state]")
 			set_greyscale(colors = wrapping_paper.greyscale_colors)
 			update_appearance()
 		else
@@ -193,7 +193,7 @@
 
 	else if(istype(item, /obj/item/boxcutter))
 		var/obj/item/boxcutter/boxcutter_item = item
-		if(boxcutter_item.on)
+		if(HAS_TRAIT(boxcutter_item, TRAIT_TRANSFORM_ACTIVE))
 			if(!attempt_pre_unwrap_contents(user, time = 0.5 SECONDS))
 				return
 			unwrap_contents()

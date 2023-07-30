@@ -5,8 +5,8 @@
 
 	hud_type = /datum/hud/living
 
-	///Badminnery resize
-	var/resize = 1
+	///Tracks the current size of the mob in relation to its original size. Use update_transform(resize) to change it.
+	var/current_size = RESIZE_DEFAULT_SIZE
 	var/lastattacker = null
 	var/lastattackerckey = null
 
@@ -61,6 +61,8 @@
 	VAR_PROTECTED/lying_angle = 0
 	/// Value of lying lying_angle before last change. TODO: Remove the need for this.
 	var/lying_prev = 0
+	/// Does the mob rotate when lying
+	var/rotate_on_lying = FALSE
 	///Used by the resist verb, likely used to prevent players from bypassing next_move by logging in/out.
 	var/last_special = 0
 	var/timeofdeath = 0
@@ -69,7 +71,6 @@
 	var/death_message = ""
 	///A sound sent when the mob dies, with the *deathgasp emote
 	var/death_sound
-
 
 	/// Helper vars for quick access to firestacks, these should be updated every time firestacks are adjusted
 	var/on_fire = FALSE
@@ -205,10 +206,12 @@
 	/// Is this mob allowed to be buckled/unbuckled to/from things?
 	var/can_buckle_to = TRUE
 
-	///The y amount a mob's sprite should be offset due to the current position they're in (e.g. lying down moves your sprite down)
-	var/body_position_pixel_x_offset = 0
 	///The x amount a mob's sprite should be offset due to the current position they're in
+	var/body_position_pixel_x_offset = 0
+	///The y amount a mob's sprite should be offset due to the current position they're in or size (e.g. lying down moves your sprite down)
 	var/body_position_pixel_y_offset = 0
+	///The height offset of a mob's maptext due to their current size.
+	var/body_maptext_height_offset = 0
 
 	/// FOV view that is applied from either nativeness or traits
 	var/fov_view
@@ -223,3 +226,6 @@
 	// Multiple imaginary friends!
 	/// Contains the owner and all imaginary friend mobs if they exist, otherwise null
 	var/list/imaginary_group = null
+
+	/// What our current gravity state is. Used to avoid duplicate animates and such
+	var/gravity_state = null

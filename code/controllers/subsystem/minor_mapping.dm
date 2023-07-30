@@ -1,4 +1,5 @@
 #define PROB_MOUSE_SPAWN 98
+#define PROB_SPIDER_REPLACEMENT 50
 
 SUBSYSTEM_DEF(minor_mapping)
 	name = "Minor Mapping"
@@ -8,20 +9,26 @@ SUBSYSTEM_DEF(minor_mapping)
 /datum/controller/subsystem/minor_mapping/Initialize()
 	#ifdef UNIT_TESTS // This whole subsystem just introduces a lot of odd confounding variables into unit test situations, so let's just not bother with doing an initialize here.
 	return SS_INIT_NO_NEED
-	#endif // the mice are easily the bigger problem, but let's just avoid anything that could cause some bullshit.
+	#else
 	trigger_migration(CONFIG_GET(number/mice_roundstart))
-	place_satchels()
+	place_satchels(satchel_amount = 2)
 	return SS_INIT_SUCCESS
+	#endif // the mice are easily the bigger problem, but let's just avoid anything that could cause some bullshit.
 
-/datum/controller/subsystem/minor_mapping/proc/trigger_migration(num_mice=10)
+/// Spawns some critters on exposed wires, usually but not always mice
+/datum/controller/subsystem/minor_mapping/proc/trigger_migration(to_spawn=10)
 	var/list/exposed_wires = find_exposed_wires()
 	var/turf/open/proposed_turf
-	while((num_mice > 0) && exposed_wires.len)
+	while((to_spawn > 0) && exposed_wires.len)
 		proposed_turf = pick_n_take(exposed_wires)
 		if (!valid_mouse_turf(proposed_turf))
 			continue
 
-		num_mice--
+		to_spawn--
+		if(HAS_TRAIT(SSstation, STATION_TRAIT_SPIDER_INFESTATION) && prob(PROB_SPIDER_REPLACEMENT))
+			new /mob/living/basic/giant_spider/maintenance(proposed_turf)
+			return
+
 		if (prob(PROB_MOUSE_SPAWN))
 			new /mob/living/basic/mouse(proposed_turf)
 		else
@@ -35,19 +42,21 @@ SUBSYSTEM_DEF(minor_mapping)
 	var/turf_temperature = proposed_turf.temperature
 	return turf_gasmix.has_gas(/datum/gas/oxygen, 5) && turf_temperature < NPC_DEFAULT_MAX_TEMP && turf_temperature > NPC_DEFAULT_MIN_TEMP
 
-/datum/controller/subsystem/minor_mapping/proc/place_satchels(amount=10)
+/datum/controller/subsystem/minor_mapping/proc/place_satchels(satchel_amount)
 	var/list/turfs = find_satchel_suitable_turfs()
 	///List of areas where satchels should not be placed.
-	var/list/blacklisted_area_types = list(/area/station/holodeck)
+	var/list/blacklisted_area_types = list(
+		/area/station/holodeck,
+		)
 
-	while(turfs.len && amount > 0)
+	while(turfs.len && satchel_amount > 0)
 		var/turf/turf = pick_n_take(turfs)
 		if(is_type_in_list(get_area(turf), blacklisted_area_types))
 			continue
 		var/obj/item/storage/backpack/satchel/flat/flat_satchel = new(turf)
 
 		SEND_SIGNAL(flat_satchel, COMSIG_OBJ_HIDE, turf.underfloor_accessibility)
-		amount--
+		satchel_amount--
 
 /proc/find_exposed_wires()
 	var/list/exposed_wires = list()
@@ -74,3 +83,4 @@ SUBSYSTEM_DEF(minor_mapping)
 	return shuffle(suitable)
 
 #undef PROB_MOUSE_SPAWN
+#undef PROB_SPIDER_REPLACEMENT

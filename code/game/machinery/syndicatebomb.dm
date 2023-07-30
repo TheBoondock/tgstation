@@ -61,7 +61,7 @@
 		..()
 
 /obj/machinery/syndicatebomb/ex_act(severity, target)
-	return
+	return FALSE
 
 /obj/machinery/syndicatebomb/process()
 	if(!active)
@@ -99,7 +99,7 @@
 
 /obj/machinery/syndicatebomb/Initialize(mapload)
 	. = ..()
-	wires = new /datum/wires/syndicatebomb(src)
+	set_wires(new /datum/wires/syndicatebomb(src))
 	if(payload)
 		payload = new payload(src)
 	update_appearance()
@@ -118,9 +118,11 @@
 	if(istype(payload))
 		. += "A small window reveals some information about the payload: [payload.desc]."
 	if(examinable_countdown)
-		. += "A digital display on it reads \"[seconds_remaining()]\"."
+		. += span_notice("A digital display on it reads \"[seconds_remaining()]\".")
+		if(active)
+			balloon_alert(user, "[seconds_remaining()]")
 	else
-		. +={"The digital display on it is inactive."}
+		. += span_notice({"The digital display on it is inactive."})
 
 /obj/machinery/syndicatebomb/update_icon_state()
 	icon_state = "[initial(icon_state)][active ? "-active" : "-inactive"][open_panel ? "-wires" : ""]"
@@ -181,11 +183,11 @@
 	if(payload || !wires.is_all_cut() || !open_panel)
 		return FALSE
 
-	if(!tool.tool_start_check(user, amount=5))  //uses up 5 fuel
+	if(!tool.tool_start_check(user, amount=1))
 		return TRUE
 
 	to_chat(user, span_notice("You start to cut [src] apart..."))
-	if(tool.use_tool(src, user, 20, volume=50, amount=5)) // uses up 5 fuel
+	if(tool.use_tool(src, user, 20, volume=50))
 		to_chat(user, span_notice("You cut [src] apart."))
 		new /obj/item/stack/sheet/plasteel(loc, 5)
 		qdel(src)
@@ -319,6 +321,7 @@
 
 /obj/item/bombcore/ex_act(severity, target) // Little boom can chain a big boom.
 	detonate()
+	return TRUE
 
 /obj/item/bombcore/burn()
 	detonate()
@@ -344,7 +347,7 @@
 	desc = "After a string of unwanted detonations, this payload has been specifically redesigned to not explode unless triggered electronically by a bomb shell."
 
 /obj/item/bombcore/syndicate/ex_act(severity, target)
-	return
+	return FALSE
 
 /obj/item/bombcore/syndicate/burn()
 	return ..()
@@ -389,9 +392,7 @@
 		attempts++
 		defusals++
 		holder.loc.visible_message(span_notice("[icon2html(holder, viewers(holder))] Alert: Bomb has been defused. Your score is now [defusals] for [attempts]! Resetting wires in 5 seconds..."))
-		sleep(5 SECONDS) //Just in case someone is trying to remove the bomb core this gives them a little window to crowbar it out
-		if(istype(holder))
-			reset()
+		addtimer(CALLBACK(src, PROC_REF(reset)), 5 SECONDS) //Just in case someone is trying to remove the bomb core this gives them a little window to crowbar it out
 
 /obj/item/bombcore/badmin
 	name = "badmin payload"
@@ -594,7 +595,7 @@
 
 /obj/item/syndicatedetonator/attack_self(mob/user)
 	if(timer < world.time)
-		for(var/obj/machinery/syndicatebomb/B in GLOB.machines)
+		for(var/obj/machinery/syndicatebomb/B as anything in SSmachines.get_machines_by_type_and_subtypes(/obj/machinery/syndicatebomb))
 			if(B.active)
 				B.detonation_timer = world.time + BUTTON_DELAY
 				detonated++

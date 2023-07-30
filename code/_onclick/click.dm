@@ -530,7 +530,7 @@
 	M.Scale(px/sx, py/sy)
 	transform = M
 
-/atom/movable/screen/click_catcher/Initialize(mapload)
+/atom/movable/screen/click_catcher/Initialize(mapload, datum/hud/hud_owner)
 	. = ..()
 	RegisterSignal(SSmapping, COMSIG_PLANE_OFFSET_INCREASE, PROC_REF(offset_increased))
 	offset_increased(SSmapping, 0, SSmapping.max_plane_offset)
@@ -578,3 +578,6 @@
 			return TRUE
 
 	return FALSE
+
+#undef MAX_SAFE_BYOND_ICON_SCALE_TILES
+#undef MAX_SAFE_BYOND_ICON_SCALE_PX
