@@ -198,13 +198,12 @@
 		to_chat(owner, span_warning("You stumbled and fall over!"))
 		owner.slip(1 SECONDS)
 		return
-	else if(drunkard.gain_trauma(/datum/brain_trauma/severe/split_personality/blackout, TRAUMA_LIMIT_ABSOLUTE))
-		return
-	// Alternative effects if they failed to blackout or cannot get blackout
-	if(SSshuttle.emergency.mode == SHUTTLE_DOCKED && is_station_level(owner.z))// Don't put us in a deep sleep if the shuttle's here. QoL, mainly.
-		to_chat(owner, span_warning("You're so tired... but you can't miss that shuttle..."))
-	else
-		owner.Sleeping(90 SECONDS)
+	else if(!drunkard.gain_trauma(/datum/brain_trauma/severe/split_personality/blackout, TRAUMA_LIMIT_ABSOLUTE))
+		// Alternative effects if they failed to blackout or cannot get blackout
+		if(SSshuttle.emergency.mode == SHUTTLE_DOCKED && is_station_level(owner.z))// Don't put us in a deep sleep if the shuttle's here. QoL, mainly.
+			to_chat(owner, span_warning("You're so tired... but you can't miss that shuttle..."))
+		else
+			owner.Sleeping(90 SECONDS)
 
 /// Status effect for being fully drunk (not tipsy).
 /atom/movable/screen/alert/status_effect/drunk
