@@ -249,10 +249,12 @@
 	poll_role = "blacked out drunkard"
 	/// Duration of effect, tracked in seconds, not deciseconds. qdels when reaching 0.
 	var/duration_in_seconds = 180
+	var/datum/status_effect/zoinked = owner.has_status_effect(inebriated)
 
 /datum/brain_trauma/severe/split_personality/blackout/on_gain()
 	. = ..()
 	RegisterSignal(owner, COMSIG_ATOM_SPLASHED, PROC_REF(on_splashed))
+	zoinked.drunk_value -= 50 //So that the drunk personality can spice things up without being killed by liver failure
 
 /datum/brain_trauma/severe/split_personality/blackout/on_lose()
 	. = ..()
