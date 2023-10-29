@@ -2,6 +2,7 @@
 #define BALLMER_PEAK_LOW_END 12.9
 #define BALLMER_PEAK_HIGH_END 13.8
 #define BALLMER_PEAK_WINDOWS_ME 26
+#define ATTEMPTED_BLACKOUT_CD "attempted_blackout_cd"
 
 /// The threshld which determine if someone is tipsy vs drunk
 #define TIPSY_THRESHOLD 6
@@ -182,8 +183,9 @@
 	if(drunk_value >= 91)
 		owner.adjustToxLoss(1)
 		owner.adjustOrganLoss(ORGAN_SLOT_BRAIN, 0.4)
-		if(owner.stat == CONSCIOUS)
+		if(owner.stat == CONSCIOUS && !TIMER_COOLDOWN_CHECK(src, ATTEMPTED_BLACKOUT_CD))
 			attempt_to_blackout()
+			TIMER_COOLDOWN_START(src, ATTEMPTED_BLACKOUT_CD, 5 SECONDS)
 
 	// And finally, over 100 - let's be honest, you shouldn't be alive by now.
 	if(drunk_value >= 101)
@@ -212,5 +214,6 @@
 #undef BALLMER_PEAK_LOW_END
 #undef BALLMER_PEAK_HIGH_END
 #undef BALLMER_PEAK_WINDOWS_ME
+#undef ATTEMPTED_BLACKOUT_CD
 
 #undef TIPSY_THRESHOLD
