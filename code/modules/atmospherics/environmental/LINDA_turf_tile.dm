@@ -54,6 +54,12 @@
 	var/max_share = 0
 	#endif
 
+	//vector list for us to generate air current
+	var/list/turf/vector_turfs
+	//length of our air current
+	var/vector_length
+	var/air_current = FALSE
+
 /turf/open/Initialize(mapload)
 	if(!blocks_air)
 		air = create_gas_mixture()
@@ -309,11 +315,16 @@
 			should_share_air = TRUE
 
 		//air sharing
-		if(should_share_air)
+		if(should_share_air && air_current)
+			our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+
+		else if(should_share_air)
 			var/difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
+					if(pressure_difference > 100)
+						generate_vector(pressure_difference, pressure_direction)
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
 			//This acts effectivly as a very slow timer, the max deltas of the group will slowly lower until it breaksdown, they then pop up a bit, and fall back down until irrelevant
@@ -399,6 +410,20 @@
 	if (move_prob > PROBABILITY_OFFSET && prob(move_prob) && (move_resist != INFINITY) && (!anchored && (max_force >= (move_resist * MOVE_FORCE_PUSH_RATIO))) || (anchored && (max_force >= (move_resist * MOVE_FORCE_FORCEPUSH_RATIO))))
 		step(src, direction)
 		last_high_pressure_movement_air_cycle = SSair.times_fired
+
+//////////////////////////SPACECURRENT/////////////////////////////
+/turf/open/proc/generate_vector(pressure_delta, pressure_direction)
+	vector_length = clamp(2, pressure_delta/100, 5) //minimum is 2 tiles,max is 5
+	vector_turfs += src
+	var/turf/open/turf_checking
+	for(var/i = 1, i <= vector_length, i++)
+		turf_checking = get_step(vector_turfs[i], pressure_direction) //pulls all the tiles in that direction if possible
+		if(TURFS_CAN_SHARE(vector_turfs[i], turf_checking)) //check if we can share the turf
+			turf_checking.air_current = TRUE
+			vector_turfs += turf_checking
+		else
+			break
+	return vector_turfs
 
 ///////////////////////////EXCITED GROUPS/////////////////////////////
 
