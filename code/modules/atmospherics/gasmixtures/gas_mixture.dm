@@ -475,8 +475,8 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 
 	return ""
 //Compares difference in pressure between two mixtures, return the difference relatives to the original gas mixture
-/datum/gas_mixture/proc/pressure_difference(datum/gas_mixture/our_gas, datum/gas_mixture/enemy_gas)
-	var/our_pressure = return_pressure(our_gas)
+/datum/gas_mixture/proc/pressure_difference(datum/gas_mixture/enemy_gas)
+	var/our_pressure = return_pressure()
 	var/enemy_pressure = return_pressure(enemy_gas)
 	var/pressure_difference = our_pressure - enemy_pressure
 	return pressure_difference

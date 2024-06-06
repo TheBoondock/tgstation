@@ -296,7 +296,7 @@
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
 		//if we have lower pressure than the tile we're about to share it should stop it
-		if(pressure_difference(our_air, enemy_air) < 0)
+		if(our_air.pressure_difference(enemy_air) < 0)
 			continue
 
 		//cache for sanic speed
