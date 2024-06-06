@@ -53,12 +53,11 @@
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
 	#endif
+	//direction to prioritize sharing
+	var/priority_dir
+	var/inertia = 0
+	var/turf/priority_turf
 
-	//vector list for us to generate air current
-	var/list/turf/vector_turfs
-	//length of our air current
-	var/vector_length
-	var/air_current = FALSE
 
 /turf/open/Initialize(mapload)
 	if(!blocks_air)
@@ -263,6 +262,12 @@
 	var/cached_ticker = significant_share_ticker
 	cached_ticker += 1
 
+	if(priority_dir)
+		priority_turf = get_step(src, priority_dir)
+		//we attempt to push the priority turf to first in the list if it isnt already
+		if(priority_turf in atmos_adjacent_turfs && atmos_adjacent_turfs[1] != priority_turf)
+			atmos_adjacent_turfs.Swap(1,4)
+
 	//cache for sanic speed
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
@@ -290,6 +295,9 @@
 
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
+		//if we have lower pressure than the tile we're about to share it should stop it
+		if(pressure_difference(our_air, enemy_air) < 0)
+			continue
 
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
@@ -315,16 +323,12 @@
 			should_share_air = TRUE
 
 		//air sharing
-		if(should_share_air && air_current)
-			our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
-
-		else if(should_share_air)
+		if(should_share_air)
 			var/difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
-					if(pressure_difference > 100)
-						generate_vector(pressure_difference, pressure_direction)
+					inertia -= difference
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
 			//This acts effectivly as a very slow timer, the max deltas of the group will slowly lower until it breaksdown, they then pop up a bit, and fall back down until irrelevant
@@ -383,6 +387,9 @@
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
 		pressure_difference = difference
+		if(pressure_difference >= 100)
+			priority_dir = pressure_direction
+			target_turf.inertia = pressure_difference
 
 /turf/open/proc/high_pressure_movements()
 	var/atom/movable/moving_atom
@@ -411,19 +418,6 @@
 		step(src, direction)
 		last_high_pressure_movement_air_cycle = SSair.times_fired
 
-//////////////////////////SPACECURRENT/////////////////////////////
-/turf/open/proc/generate_vector(pressure_delta, pressure_direction)
-	vector_length = clamp(2, pressure_delta/100, 5) //minimum is 2 tiles,max is 5
-	vector_turfs += src
-	var/turf/open/turf_checking
-	for(var/i = 1, i <= vector_length, i++)
-		turf_checking = get_step(vector_turfs[i], pressure_direction) //pulls all the tiles in that direction if possible
-		if(TURFS_CAN_SHARE(vector_turfs[i], turf_checking)) //check if we can share the turf
-			turf_checking.air_current = TRUE
-			vector_turfs += turf_checking
-		else
-			break
-	return vector_turfs
 
 ///////////////////////////EXCITED GROUPS/////////////////////////////
 
