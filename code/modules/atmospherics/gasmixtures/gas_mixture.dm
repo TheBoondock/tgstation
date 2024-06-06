@@ -474,7 +474,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 			return "temp"
 
 	return ""
-//Compares difference in pressure between two mixtures, return the difference relatives to the original gas mixture
+///Compares difference in pressure between two mixtures, return the difference, negative if we have lower pressure than the enemy tile, positive if we have more.
 /datum/gas_mixture/proc/pressure_difference(datum/gas_mixture/enemy_gas)
 	var/our_pressure = return_pressure()
 	var/enemy_pressure = return_pressure(enemy_gas)

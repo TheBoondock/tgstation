@@ -266,7 +266,7 @@
 		priority_turf = get_step(src, priority_dir)
 		//we attempt to push the priority turf to first in the list if it isnt already
 		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
-			var/turf_index = atmos_adjacent_turfs.locate(priority_turf, 1, 0)
+			var/turf_index = atmos_adjacent_turfs.Find(priority_turf, 1, 0)
 			atmos_adjacent_turfs.Swap(1,turf_index)
 
 	//cache for sanic speed
@@ -296,10 +296,10 @@
 
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
-		//if we have lower pressure than the tile we're about to share it should stop it
-		if(our_air.pressure_difference(enemy_air) < 0)
+		var/pressure_delta = our_air.pressure_difference(enemy_air)
+		//if we have momentum and cannot overcome the pressure diference then we should find an alternative path to share i.e the tiles on the side
+		if(pressure_delta >= 200 && pressure_delta >= inertia)
 			continue
-
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
 		//If we are both in an excited group, and they aren't the same, merge.
@@ -329,9 +329,11 @@
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
-					inertia -= difference
+					inertia -= pressure_delta
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
+			if(priority_dir) //we have successfully shared with the prioritized turf so no need to share with the others
+				break
 			//This acts effectivly as a very slow timer, the max deltas of the group will slowly lower until it breaksdown, they then pop up a bit, and fall back down until irrelevant
 			LAST_SHARE_CHECK
 
@@ -388,8 +390,8 @@
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
 		pressure_difference = difference
-		if(pressure_difference >= 100)
-			priority_dir = pressure_direction
+		if(pressure_difference >= 40)
+			target_turf.priority_dir = pressure_direction
 			target_turf.inertia = pressure_difference
 
 /turf/open/proc/high_pressure_movements()
