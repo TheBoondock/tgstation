@@ -265,8 +265,9 @@
 	if(priority_dir)
 		priority_turf = get_step(src, priority_dir)
 		//we attempt to push the priority turf to first in the list if it isnt already
-		if(priority_turf in atmos_adjacent_turfs && atmos_adjacent_turfs[1] != priority_turf)
-			atmos_adjacent_turfs.Swap(1,4)
+		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
+			var/turf_index = atmos_adjacent_turfs.locate(priority_turf, 1, 0)
+			atmos_adjacent_turfs.Swap(1,turf_index)
 
 	//cache for sanic speed
 	var/list/adjacent_turfs = atmos_adjacent_turfs
@@ -382,7 +383,7 @@
 
 //////////////////////////SPACEWIND/////////////////////////////
 
-/turf/open/proc/consider_pressure_difference(turf/target_turf, difference)
+/turf/open/proc/consider_pressure_difference(turf/open/target_turf, difference)
 	SSair.high_pressure_delta |= src
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
