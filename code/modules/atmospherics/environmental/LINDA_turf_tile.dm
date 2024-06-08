@@ -55,7 +55,7 @@
 	#endif
 	//direction to prioritize sharing
 	var/priority_dir
-	var/inertia = 0
+	var/velocity = 0
 	var/turf/priority_turf
 
 
@@ -297,8 +297,10 @@
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
 		var/pressure_delta = our_air.pressure_difference(enemy_air)
+		var/sudden_stop = FALSE
 		//if we have momentum and cannot overcome the pressure diference then we should find an alternative path to share i.e the tiles on the side
-		if(pressure_delta >= 200 && pressure_delta >= inertia)
+		if(!compare_momentum(enemy_tile, pressure_delta))
+			sudden_stop = TRUE
 			continue
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
@@ -325,11 +327,16 @@
 
 		//air sharing
 		if(should_share_air)
-			var/difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+			var/difference
+			//we force some of our gasses onto the next tile if we have enough velocity, if not we evenly share out like normal
+			if(velocity > 200 && !sudden_stop)
+				difference = our_air.forced_share(enemy_air)
+			else
+				difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+				sudden_stop = FALSE //TODO: Make this turn false in the case where we can share in two side tiles
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
-					inertia -= pressure_delta
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
 			if(priority_dir) //we have successfully shared with the prioritized turf so no need to share with the others
@@ -390,9 +397,8 @@
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
 		pressure_difference = difference
-		if(pressure_difference >= 40)
-			target_turf.priority_dir = pressure_direction
-			target_turf.inertia = pressure_difference
+		if(pressure_difference >= 100)
+			pass_momentum(target_turf, difference, pressure_direction)
 
 /turf/open/proc/high_pressure_movements()
 	var/atom/movable/moving_atom
@@ -400,6 +406,35 @@
 		moving_atom = thing
 		if (!moving_atom.anchored && !moving_atom.pulledby && moving_atom.last_high_pressure_movement_air_cycle < SSair.times_fired)
 			moving_atom.experience_pressure_difference(pressure_difference, pressure_direction)
+
+///pass our velocity onto the tile we're priotizing, reduces our own velocity afterward.
+/turf/open/proc/pass_momentum(turf/open/target_turf, difference, direction)
+	var/existing_velocity = target_turf.velocity //if we have velocity we should have the direction yeah?
+	var/velocity_changes
+	//coefficient to reduce the loss in velocity when we are passing momentum into a tile with the same flow direction
+	var/flow_dir_coefficient = (target_turf.priority_dir == priority_dir) ? 0.4 : 1
+	if(difference > existing_velocity)//we change the momentum if we can, if its the same direction we change it more efficient
+		velocity_changes = difference - existing_velocity
+		target_turf.velocity = velocity_changes
+		target_turf.priority_dir = direction
+		velocity -= velocity_changes * flow_dir_coefficient
+	else if(difference < existing_velocity)//if we cant change it then we reduce it
+		velocity_changes = existing_velocity - difference
+		target_turf.velocity = velocity_changes
+		velocity -= velocity_changes
+	else
+		target_turf.velocity = 0
+		target_turf.priority_dir = null
+///compare the momentum and velocity between our turf's gas mixtures, return TRUE if it can flow and FALSE if it cannot
+/turf/open/proc/compare_momentum(turf/open/enemy_turf, pressure_difference)
+	var/should_flow = TRUE
+	var/velocity_difference = enemy_turf.velocity - velocity
+	//if we dont have the same flow direction and their velocity or pressure difference is much greater than our, dont flow
+	if((priority_dir != enemy_turf.priority_dir) && (velocity_difference > 100 || (pressure_difference > -100)))
+		should_flow = FALSE
+
+	return should_flow
+
 
 /atom/movable
 	///How much delta pressure is needed for us to move

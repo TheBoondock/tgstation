@@ -426,6 +426,96 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		TOTAL_MOLES(sharer_gases,their_moles)
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
+
+///force share our turf without portioning up the share, we exclusively share with only 1 turf and pushes 60% of our moles onto it
+//TODO: make it scales with inertia
+/datum/gas_mixture/proc/forced_share(datum/gas_mixture/sharer)
+	var/list/cached_gases = gases
+	var/list/sharer_gases = sharer.gases
+
+	var/list/only_in_sharer = sharer_gases - cached_gases
+	var/list/only_in_cached = cached_gases - sharer_gases
+
+	var/temperature_delta = temperature_archived - sharer.temperature_archived
+	var/abs_temperature_delta = abs(temperature_delta)
+
+	var/old_self_heat_capacity = 0
+	var/old_sharer_heat_capacity = 0
+	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+		old_self_heat_capacity = heat_capacity()
+		old_sharer_heat_capacity = sharer.heat_capacity()
+
+	var/heat_capacity_self_to_sharer = 0 //heat capacity of the moles transferred from us to the sharer
+	var/heat_capacity_sharer_to_self = 0 //heat capacity of the moles transferred from the sharer to us
+
+	var/moved_moles = 0
+	var/abs_moved_moles = 0
+	//GAS TRANSFER
+
+	//Prep
+	for(var/id in only_in_sharer) //create gases not in our cache
+		ADD_GAS(id, cached_gases)
+	for(var/id in only_in_cached) //create gases not in the sharing mix
+		ADD_GAS(id, sharer_gases)
+
+	for(var/id in cached_gases) //transfer gases
+		var/gas = cached_gases[id]
+		var/sharergas = sharer_gases[id]
+		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
+		switch(delta)
+			// If we have more gas then they do, gas is moving from us to them
+			// Since we already have more, we can portion up 60% of the delta for them instead while we keep 40%
+			if(1 to INFINITY)
+				delta = delta*0.6
+			//in this case, we have less than they do and going AGAINST the pressure, thus we portion up 20% of our total to be shared
+			//TODO: Make the portioning scales based on velocity
+			if(-INFINITY to -1)
+				delta = gas[ARCHIVE]*0.2
+			//in this case, there is no difference between us and them, so we can portion up 40% of our total to be shared
+			//TODO: Make the portioning scales based on velocity
+			else
+				delta = gas[ARCHIVE]*0.4
+		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
+			heat_capacity_self_to_sharer += gas_heat_capacity
+
+		gas[MOLES] -= delta
+		sharergas[MOLES] += delta
+		moved_moles += delta
+		abs_moved_moles += abs(delta)
+
+	last_share = abs_moved_moles
+
+	//THERMAL ENERGY TRANSFER
+	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+		var/new_self_heat_capacity = old_self_heat_capacity + heat_capacity_sharer_to_self - heat_capacity_self_to_sharer
+		var/new_sharer_heat_capacity = old_sharer_heat_capacity + heat_capacity_self_to_sharer - heat_capacity_sharer_to_self
+
+		//transfer of thermal energy (via changed heat capacity) between self and sharer
+		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			temperature = (old_self_heat_capacity*temperature - heat_capacity_self_to_sharer*temperature_archived + heat_capacity_sharer_to_self*sharer.temperature_archived)/new_self_heat_capacity
+
+		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			sharer.temperature = (old_sharer_heat_capacity*sharer.temperature-heat_capacity_sharer_to_self*sharer.temperature_archived + heat_capacity_self_to_sharer*temperature_archived)/new_sharer_heat_capacity
+		//thermal energy of the system (self and sharer) is unchanged
+
+			if(abs(old_sharer_heat_capacity) > MINIMUM_HEAT_CAPACITY)
+				if(abs(new_sharer_heat_capacity/old_sharer_heat_capacity - 1) < 0.1) // <10% change in sharer heat capacity
+					temperature_share(sharer, OPEN_HEAT_TRANSFER_COEFFICIENT)
+
+	if(length(only_in_sharer + only_in_cached)) //if all gases were present in both mixtures, we know that no gases are 0
+		garbage_collect(only_in_cached) //any gases the sharer had, we are guaranteed to have. gases that it didn't have we are not.
+		sharer.garbage_collect(only_in_sharer) //the reverse is equally true
+	else if (initial(sharer.gc_share))
+		sharer.garbage_collect()
+
+	if(temperature_delta > MINIMUM_TEMPERATURE_TO_MOVE || abs(moved_moles) > MINIMUM_MOLES_DELTA_TO_MOVE)
+		var/our_moles
+		TOTAL_MOLES(cached_gases,our_moles)
+		var/their_moles
+		TOTAL_MOLES(sharer_gases,their_moles)
+		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
+
 ///Performs temperature sharing calculations (via conduction) between two gas_mixtures assuming only 1 boundary length
 ///Returns: new temperature of the sharer
 /datum/gas_mixture/proc/temperature_share(datum/gas_mixture/sharer, conduction_coefficient, sharer_temperature, sharer_heat_capacity)
