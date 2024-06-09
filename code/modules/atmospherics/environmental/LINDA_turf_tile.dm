@@ -56,7 +56,6 @@
 	//direction to prioritize sharing
 	var/priority_dir
 	var/velocity = 0
-	var/turf/priority_turf
 
 
 /turf/open/Initialize(mapload)
@@ -261,13 +260,16 @@
 	current_cycle = fire_count
 	var/cached_ticker = significant_share_ticker
 	cached_ticker += 1
+	var/sudden_stop = FALSE
 
 	if(priority_dir)
-		priority_turf = get_step(src, priority_dir)
+		var/turf/open/priority_turf = get_step(src, priority_dir)
 		//we attempt to push the priority turf to first in the list if it isnt already
 		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
 			var/turf_index = atmos_adjacent_turfs.Find(priority_turf, 1, 0)
 			atmos_adjacent_turfs.Swap(1,turf_index)
+		else
+			sudden_stop = TRUE
 
 	//cache for sanic speed
 	var/list/adjacent_turfs = atmos_adjacent_turfs
@@ -296,10 +298,9 @@
 
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
-		var/pressure_delta = our_air.pressure_difference(enemy_air)
-		var/sudden_stop = FALSE
-		//if we have momentum and cannot overcome the pressure diference then we should find an alternative path to share i.e the tiles on the side
-		if(!compare_momentum(enemy_tile, pressure_delta))
+		var/moles_difference = our_air.mol_difference(enemy_air)
+		//if we have momentum and cannot overcome the moles diference then we should find an alternative path to share i.e the tiles on the side
+		if(!compare_momentum(enemy_tile, moles_difference))
 			sudden_stop = TRUE
 			continue
 		//cache for sanic speed
@@ -396,8 +397,8 @@
 	SSair.high_pressure_delta |= src
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
-		pressure_difference = difference
-		if(pressure_difference >= 100)
+		pressure_difference = difference //wtf so pressure difference was really just mol difference this WHOLE TIME?
+		if(pressure_difference >= 30)
 			pass_momentum(target_turf, difference, pressure_direction)
 
 /turf/open/proc/high_pressure_movements()
@@ -408,29 +409,44 @@
 			moving_atom.experience_pressure_difference(pressure_difference, pressure_direction)
 
 ///pass our velocity onto the tile we're priotizing, reduces our own velocity afterward.
-/turf/open/proc/pass_momentum(turf/open/target_turf, difference, direction)
-	var/existing_velocity = target_turf.velocity //if we have velocity we should have the direction yeah?
-	var/velocity_changes
+/turf/open/proc/pass_momentum(turf/open/target_turf, momentum, direction)
+	var/existing_velocity = target_turf.velocity
+	var/velocity_difference = velocity - existing_velocity
 	//coefficient to reduce the loss in velocity when we are passing momentum into a tile with the same flow direction
-	var/flow_dir_coefficient = (target_turf.priority_dir == priority_dir) ? 0.4 : 1
-	if(difference > existing_velocity)//we change the momentum if we can, if its the same direction we change it more efficient
-		velocity_changes = difference - existing_velocity
-		target_turf.velocity = velocity_changes
-		target_turf.priority_dir = direction
-		velocity -= velocity_changes * flow_dir_coefficient
-	else if(difference < existing_velocity)//if we cant change it then we reduce it
-		velocity_changes = existing_velocity - difference
-		target_turf.velocity = velocity_changes
-		velocity -= velocity_changes
+	var/passing_coeff
+	//we are moving in the same direction, we should lose less velocity
+	if(target_turf.priority_dir == direction)
+		passing_coeff = 0.2
+	//we are going straight into eachother, we should tank our velocity
+	else if(target_turf.priority_dir == turn(direction, 180))
+		passing_coeff = 1
+	//our direction is not on the same axis or they dont have one, velocity decrease by average
 	else
-		target_turf.velocity = 0
-		target_turf.priority_dir = null
-///compare the momentum and velocity between our turf's gas mixtures, return TRUE if it can flow and FALSE if it cannot
-/turf/open/proc/compare_momentum(turf/open/enemy_turf, pressure_difference)
+		passing_coeff = 0.5
+	//we have more velocity than them so attempt to change
+	if(velocity_difference > 0)
+		target_turf.velocity += momentum
+		velocity -= momentum * passing_coeff
+		target_turf.priority_dir = direction
+	//we have less velocity than them so reduce both velocities
+	else if(velocity_difference < 0)
+		target_turf.velocity -= momentum
+		velocity += momentum * passing_coeff
+	//there is no difference, but if we are going straight into eachother cancel out
+	else
+		if(passing_coeff == 1)
+			target_turf.velocity -= velocity
+			velocity -= velocity
+		else
+			target_turf.velocity += momentum
+			velocity -= momentum * passing_coeff
+
+///compare the momentum and velocity between turfs, return TRUE if it can flow and FALSE if it cannot
+/turf/open/proc/compare_momentum(turf/open/enemy_turf, mol_difference)
 	var/should_flow = TRUE
 	var/velocity_difference = enemy_turf.velocity - velocity
 	//if we dont have the same flow direction and their velocity or pressure difference is much greater than our, dont flow
-	if((priority_dir != enemy_turf.priority_dir) && (velocity_difference > 100 || (pressure_difference > -100)))
+	if((priority_dir != enemy_turf.priority_dir) && (velocity_difference > 100 || (mol_difference > -100)))
 		should_flow = FALSE
 
 	return should_flow

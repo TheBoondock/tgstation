@@ -564,12 +564,14 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 			return "temp"
 
 	return ""
-///Compares difference in pressure between two mixtures, return the difference, negative if we have lower pressure than the enemy tile, positive if we have more.
-/datum/gas_mixture/proc/pressure_difference(datum/gas_mixture/enemy_gas)
-	var/our_pressure = return_pressure()
-	var/enemy_pressure = return_pressure(enemy_gas)
-	var/pressure_difference = our_pressure - enemy_pressure
-	return pressure_difference
+///Compares difference in moles between two mixtures, return the difference, negative if we have lower mol count than the enemy tile, positive if we have more.
+/datum/gas_mixture/proc/mol_difference(datum/gas_mixture/enemy_gas)
+	var/our_moles
+	TOTAL_MOLES(gases, our_moles)
+	var/enemy_moles
+	TOTAL_MOLES(enemy_gas.gases, enemy_moles)
+	var/moles_difference = our_moles - enemy_moles
+	return moles_difference
 
 ///Performs various reactions such as combustion and fabrication
 ///Returns: 1 if any reaction took place; 0 otherwise
