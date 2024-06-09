@@ -392,6 +392,11 @@
 	temperature_expose(our_air, our_air.temperature)
 
 //////////////////////////SPACEWIND/////////////////////////////
+//Basic idea: when we share pass a certain threshold we impart velocity onto the tile we're sharing
+//Tiles with velocity will have a direction, which they use to prioritize sharing with the tile in that direction first
+//Velocity is changed when we move something up to our speed, change a tile's direction
+//When our velocity is much lesser than another tile and that tile has a different direction than ours, we attempt to share to the side to simulate air current's path of least resistant
+//IDK this is what i want so far and implementing is hard enough
 
 /turf/open/proc/consider_pressure_difference(turf/open/target_turf, difference)
 	SSair.high_pressure_delta |= src
