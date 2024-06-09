@@ -268,8 +268,7 @@
 		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
 			var/turf_index = atmos_adjacent_turfs.Find(priority_turf, 1, 0)
 			atmos_adjacent_turfs.Swap(1,turf_index)
-		else
-			sudden_stop = TRUE
+
 
 	//cache for sanic speed
 	var/list/adjacent_turfs = atmos_adjacent_turfs
@@ -299,10 +298,6 @@
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
 		var/moles_difference = our_air.mol_difference(enemy_air)
-		//if we have momentum and cannot overcome the moles diference then we should find an alternative path to share i.e the tiles on the side
-		if(!compare_momentum(enemy_tile, moles_difference))
-			sudden_stop = TRUE
-			continue
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
 		//If we are both in an excited group, and they aren't the same, merge.
@@ -329,12 +324,8 @@
 		//air sharing
 		if(should_share_air)
 			var/difference
-			//we force some of our gasses onto the next tile if we have enough velocity, if not we evenly share out like normal
-			if(velocity > 200 && !sudden_stop)
-				difference = our_air.forced_share(enemy_air)
-			else
-				difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
-				sudden_stop = FALSE //TODO: Make this turn false in the case where we can share in two side tiles
+			difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+			sudden_stop = FALSE //TODO: Make this turn false in the case where we can share in two side tiles
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
@@ -448,13 +439,11 @@
 
 ///compare the momentum and velocity between turfs, return TRUE if it can flow and FALSE if it cannot
 /turf/open/proc/compare_momentum(turf/open/enemy_turf, mol_difference)
-	var/should_flow = TRUE
 	var/velocity_difference = enemy_turf.velocity - velocity
 	//if we dont have the same flow direction and their velocity or pressure difference is much greater than our, dont flow
 	if((priority_dir != enemy_turf.priority_dir) && (velocity_difference > 100 || (mol_difference > -100)))
-		should_flow = FALSE
+		return FALSE
 
-	return should_flow
 
 
 /atom/movable
