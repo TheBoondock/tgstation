@@ -62,6 +62,7 @@
 	var/smile_color = COLOR_RED
 	var/visor_icon = "envisor"
 	var/smile_state = "envirohelm_smile"
+	var/adjusted = FALSE
 	var/obj/item/clothing/head/attached_hat
 	actions_types = list(/datum/action/item_action/toggle_helmet_light, /datum/action/item_action/toggle_welding_screen)
 	visor_vars_to_toggle = VISOR_FLASHPROTECT | VISOR_TINT
@@ -145,6 +146,11 @@
 		to_chat(user, span_notice("You placed [hitting_clothing.name] on helmet!"))
 		hitting_clothing.forceMove(src)
 		update_appearance()
+
+/obj/item/clothing/head/helmet/space/plasmaman/click_alt(mob/user)
+	. = ..()
+	to_chat(user, "You adjusted the helmet.")
+	return CLICK_ACTION_SUCCESS
 
 ///By the by, helmets have the update_icon_updates_onmob element, so we don't have to call mob.update_worn_head()
 /obj/item/clothing/head/helmet/space/plasmaman/worn_overlays(mutable_appearance/standing, isinhands)

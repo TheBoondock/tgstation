@@ -364,3 +364,47 @@
 		return FALSE
 
 	return TRUE
+
+/obj/item/organ/external/plasma_hair
+	name = "plasmaman hair"
+	desc = "The protruding colonids that catch fire to form hair"
+
+	zone = BODY_ZONE_HEAD
+	slot = ORGAN_SLOT_EXTERNAL_PLASMA_HAIR
+
+	preference = "feature_plasma_hair"
+	use_mob_sprite_as_obj_sprite = TRUE
+
+	dna_block = DNA_POD_HAIR_BLOCK
+	restyle_flags = EXTERNAL_RESTYLE_PLANT
+
+	bodypart_overlay = /datum/bodypart_overlay/mutant/plasma_hair
+
+///Podperson bodypart overlay, with special coloring functionality to render the flowers in the inverse color
+/datum/bodypart_overlay/mutant/pod_hair
+	layers = EXTERNAL_FRONT|EXTERNAL_ADJACENT
+	feature_key = "pod_hair"
+
+	///This layer will be colored differently than the rest of the organ. So we can get differently colored flowers or something
+	var/color_swapped_layer = EXTERNAL_FRONT
+	///The individual rgb colors are subtracted from this to get the color shifted layer
+	var/color_inverse_base = 255
+
+/datum/bodypart_overlay/mutant/pod_hair/get_global_feature_list()
+	return SSaccessories.pod_hair_list
+
+/datum/bodypart_overlay/mutant/pod_hair/color_image(image/overlay, draw_layer, obj/item/bodypart/limb)
+	if(draw_layer != bitflag_to_layer(color_swapped_layer))
+		return ..()
+
+	if(draw_color) // can someone explain to me why draw_color is allowed to EVER BE AN EMPTY STRING
+		var/list/rgb_list = rgb2num(draw_color)
+		overlay.color = rgb(color_inverse_base - rgb_list[1], color_inverse_base - rgb_list[2], color_inverse_base - rgb_list[3]) //inversa da color
+	else
+		overlay.color = null
+
+/datum/bodypart_overlay/mutant/pod_hair/can_draw_on_bodypart(mob/living/carbon/human/human)
+	if((human.head?.flags_inv & HIDEHAIR) || (human.wear_mask?.flags_inv & HIDEHAIR))
+		return FALSE
+
+	return TRUE
