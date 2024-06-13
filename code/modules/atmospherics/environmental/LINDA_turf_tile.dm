@@ -260,7 +260,7 @@
 	current_cycle = fire_count
 	var/cached_ticker = significant_share_ticker
 	cached_ticker += 1
-	var/sudden_stop = FALSE
+
 
 	if(priority_dir)
 		var/turf/open/priority_turf = get_step(src, priority_dir)
@@ -297,7 +297,7 @@
 
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
-		var/moles_difference = our_air.mol_difference(enemy_air)
+		//var/moles_difference = our_air.mol_difference(enemy_air)
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
 		//If we are both in an excited group, and they aren't the same, merge.
@@ -325,10 +325,10 @@
 		if(should_share_air)
 			var/difference
 			difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
-			sudden_stop = FALSE //TODO: Make this turn false in the case where we can share in two side tiles
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
+					pass_momentum(enemy_tile, difference, get_dir(src, enemy_tile))
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
 			if(priority_dir) //we have successfully shared with the prioritized turf so no need to share with the others
@@ -383,19 +383,12 @@
 	temperature_expose(our_air, our_air.temperature)
 
 //////////////////////////SPACEWIND/////////////////////////////
-//Basic idea: when we share pass a certain threshold we impart velocity onto the tile we're sharing
-//Tiles with velocity will have a direction, which they use to prioritize sharing with the tile in that direction first
-//Velocity is changed when we move something up to our speed, change a tile's direction
-//When our velocity is much lesser than another tile and that tile has a different direction than ours, we attempt to share to the side to simulate air current's path of least resistant
-//IDK this is what i want so far and implementing is hard enough
 
 /turf/open/proc/consider_pressure_difference(turf/open/target_turf, difference)
 	SSair.high_pressure_delta |= src
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
 		pressure_difference = difference //wtf so pressure difference was really just mol difference this WHOLE TIME?
-		if(pressure_difference >= 30)
-			pass_momentum(target_turf, difference, pressure_direction)
 
 /turf/open/proc/high_pressure_movements()
 	var/atom/movable/moving_atom
@@ -403,39 +396,34 @@
 		moving_atom = thing
 		if (!moving_atom.anchored && !moving_atom.pulledby && moving_atom.last_high_pressure_movement_air_cycle < SSair.times_fired)
 			moving_atom.experience_pressure_difference(pressure_difference, pressure_direction)
+//////////////////////////AIRCURRENT/////////////////////////////
+//Basic idea: when we share pass a certain threshold we impart velocity onto the tile we're sharing
+//Tiles with velocity will have a direction, which they use to prioritize sharing with the tile in that direction first
+//Velocity is changed when we move something up to our speed, change a tile's direction
+//Velocity equalizes between tiles but momentum is what builds up velocity
+//When our velocity is much lesser than another tile and that tile has a different direction than ours, we attempt to share to the side to simulate air current's path of least resistant
+//IDK this is what i want so far and implementing is hard enough
 
-///pass our velocity onto the tile we're priotizing, reduces our own velocity afterward.
+///impart velocity onto the tiles, momentum measured by mols, and 4 cardinal directions we want it to move in. Used by tiles sharing
 /turf/open/proc/pass_momentum(turf/open/target_turf, momentum, direction)
-	var/existing_velocity = target_turf.velocity
-	var/velocity_difference = velocity - existing_velocity
-	//coefficient to reduce the loss in velocity when we are passing momentum into a tile with the same flow direction
-	var/passing_coeff
-	//we are moving in the same direction, we should lose less velocity
-	if(target_turf.priority_dir == direction)
-		passing_coeff = 0.2
-	//we are going straight into eachother, we should tank our velocity
-	else if(target_turf.priority_dir == turn(direction, 180))
-		passing_coeff = 1
-	//our direction is not on the same axis or they dont have one, velocity decrease by average
-	else
-		passing_coeff = 0.5
-	//we have more velocity than them so attempt to change
-	if(velocity_difference > 0)
-		target_turf.velocity += momentum
-		velocity -= momentum * passing_coeff
-		target_turf.priority_dir = direction
-	//we have less velocity than them so reduce both velocities
-	else if(velocity_difference < 0)
-		target_turf.velocity -= momentum
-		velocity += momentum * passing_coeff
-	//there is no difference, but if we are going straight into eachother cancel out
-	else
-		if(passing_coeff == 1)
-			target_turf.velocity -= velocity
-			velocity -= velocity
-		else
-			target_turf.velocity += momentum
-			velocity -= momentum * passing_coeff
+	var/target_dir = target_turf.priority_dir
+	var/velocity_delta = round((velocity + momentum) - target_turf.velocity)
+	if(velocity_delta > 0)
+		if(!target_dir)//no air current on the target
+			target_turf.priority_dir = direction
+		else if(target_dir != direction)//yes air current on target and its not in the same direction, we need enough momentum to change it
+			if(velocity_delta > 40)
+				target_turf.priority_dir = direction
+		target_turf.velocity += velocity_delta * 0.5
+		velocity -= velocity_delta *0.5
+		return
+	else if(velocity < 0)//so we cant overcome their velocity even with the momentum, both loses some velocity
+		if(!target_dir)
+			target_turf.priority_dir = direction
+		target_turf.velocity *0
+		velocity * 0.1
+		return
+
 
 ///compare the momentum and velocity between turfs, return TRUE if it can flow and FALSE if it cannot
 /turf/open/proc/compare_momentum(turf/open/enemy_turf, mol_difference)
