@@ -15,7 +15,9 @@
 		TRAIT_RESISTCOLD,
 		TRAIT_UNHUSKABLE,
 	)
-
+	external_organs = list(
+		/obj/item/organ/external/plasma_hair = "None",
+	)
 	inherent_biotypes = MOB_HUMANOID|MOB_MINERAL
 	inherent_respiration_type = RESPIRATION_PLASMA
 	mutantlungs = /obj/item/organ/internal/lungs/plasmaman

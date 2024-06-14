@@ -2400,3 +2400,9 @@
 /datum/sprite_accessory/moth_markings/lightbearer
 	name = "Lightbearer"
 	icon_state = "lightbearer"
+
+/datum/sprite_accessory/plasma_hair
+	icon = 'icons/mob/human/species/plasmaman_hair.dmi'
+	icon_state = "fire"
+	name = "Fiery Hair"
+	gender_specific = FALSE

@@ -9,7 +9,7 @@
 	dmg_overlay_type = null
 	brute_modifier = 1.5 //Plasmemes are weak
 	burn_modifier = 1.5 //Plasmemes are weak
-	head_flags = HEAD_EYESPRITES|HEAD_HAIR
+	head_flags = HEAD_EYESPRITES
 	bodypart_flags = BODYPART_UNHUSKABLE
 
 /obj/item/bodypart/chest/plasmaman
