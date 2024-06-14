@@ -380,7 +380,7 @@
 
 ///Plasmaman bodypart overlay, with special coloring functionality to render the flowers in the inverse color
 /datum/bodypart_overlay/mutant/plasma_hair
-	layers = EXTERNAL_BEHIND
+	layers = EXTERNAL_BEHIND|EXTERNAL_ADJACENT
 	feature_key = "plasma_hair"
 	sprite_datum = /datum/sprite_accessory/plasma_hair
 
