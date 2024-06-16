@@ -89,8 +89,12 @@
 		. += span_notice("There's nothing placed on the helmet.")
 
 /obj/item/clothing/head/helmet/space/plasmaman/click_alt(mob/user)
-	if(user.can_perform_action(src))
-		adjust_visor(user)
+	if(adjusted)
+		adjusted = FALSE
+		flags_inv &= ~HIDEHAIR
+	else
+		adjusted = TRUE
+		flags_inv |= HIDEHAIR
 
 /obj/item/clothing/head/helmet/space/plasmaman/ui_action_click(mob/user, action)
 	if(istype(action, /datum/action/item_action/toggle_welding_screen))

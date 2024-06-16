@@ -371,6 +371,7 @@
 
 	zone = BODY_ZONE_HEAD
 	slot = ORGAN_SLOT_EXTERNAL_PLASMA_HAIR
+	dna_block = DNA_PLASMA_HAIR_BLOCK
 
 	preference = "feature_plasma_hair"
 	use_mob_sprite_as_obj_sprite = TRUE
@@ -380,12 +381,17 @@
 
 ///Plasmaman bodypart overlay, with special coloring functionality to render the flowers in the inverse color
 /datum/bodypart_overlay/mutant/plasma_hair
-	layers = EXTERNAL_BEHIND|EXTERNAL_ADJACENT
+	layers = EXTERNAL_BEHIND
 	feature_key = "plasma_hair"
 	sprite_datum = /datum/sprite_accessory/plasma_hair
 
 /datum/bodypart_overlay/mutant/plasma_hair/get_global_feature_list()
 	return SSaccessories.plasma_hair_list
+
+/datum/bodypart_overlay/mutant/plasma_hair/get_image(image_layer, obj/item/bodypart/limb)
+	. = ..()
+	var/mutable_appearance/our_image = .
+	our_image.pixel_y += 7
 
 /datum/bodypart_overlay/mutant/plasma_hair/can_draw_on_bodypart(mob/living/carbon/human/human)
 	if((human.head?.flags_inv & HIDEHAIR) || (human.wear_mask?.flags_inv & HIDEHAIR))
