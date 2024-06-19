@@ -264,10 +264,14 @@
 
 	if(priority_dir)
 		var/turf/open/priority_turf = get_step(src, priority_dir)
-		//we attempt to push the priority turf to first in the list if it isnt already
+		var/turf/open/opposite_turf = get_step(src, turn(priority_dir, 180))
+		//we attempt to push the priority turf to first in the list if it isnt already, then we push the opposite turf to the second position
+		//this is to reserve the side turfs for later
 		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
 			var/turf_index = atmos_adjacent_turfs.Find(priority_turf, 1, 0)
 			atmos_adjacent_turfs.Swap(1,turf_index)
+			turf_index = atmos_adjacent_turfs.Find(opposite_turf, 2, 0)
+			atmos_adjacent_turfs.Swap(2, turf_index)
 
 
 	//cache for sanic speed
@@ -331,8 +335,6 @@
 					pass_momentum(enemy_tile, difference, get_dir(src, enemy_tile))
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
-			if(priority_dir) //we have successfully shared with the prioritized turf so no need to share with the others
-				break
 			//This acts effectivly as a very slow timer, the max deltas of the group will slowly lower until it breaksdown, they then pop up a bit, and fall back down until irrelevant
 			LAST_SHARE_CHECK
 
