@@ -2,6 +2,7 @@
 #define ELECTROLYZER_MODE_WORKING "working"
 
 /obj/machinery/electrolyzer
+	SET_BASE_VISUAL_PIXEL(0, DEPTH_OFFSET)
 	anchored = FALSE
 	density = TRUE
 	interaction_flags_machine = INTERACT_MACHINE_ALLOW_SILICON | INTERACT_MACHINE_OPEN
@@ -15,7 +16,7 @@
 	/// We don't use area power, we always use the cell
 	use_power = NO_POWER_USE
 	///used to check if there is a cell in the machine
-	var/obj/item/stock_parts/cell/cell
+	var/obj/item/stock_parts/power_store/cell
 	///check if the machine is on or off
 	var/on = FALSE
 	///check what mode the machine should be (WORKING, STANDBY)
@@ -170,7 +171,7 @@
 
 /obj/machinery/electrolyzer/attackby(obj/item/I, mob/user, params)
 	add_fingerprint(user)
-	if(istype(I, /obj/item/stock_parts/cell))
+	if(istype(I, /obj/item/stock_parts/power_store/cell))
 		if(!panel_open)
 			balloon_alert(user, "open panel!")
 			return

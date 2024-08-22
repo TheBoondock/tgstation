@@ -1,4 +1,5 @@
 /obj/machinery/chem_mass_spec
+	SET_BASE_VISUAL_PIXEL(0, DEPTH_OFFSET)
 	name = "High-performance liquid chromatography machine"
 	desc = "Allows you to purify reagents & seperate out inverse reagents"
 	icon = 'icons/obj/medical/chemical.dmi'
@@ -434,13 +435,10 @@
 	replace_beaker(user, TRUE)
 	return CLICK_ACTION_SUCCESS
 
-/obj/machinery/chem_mass_spec/alt_click_secondary(mob/living/user)
-	. = ..()
-	if(!can_interact(user))
-		return
+/obj/machinery/chem_mass_spec/click_alt_secondary(mob/living/user)
 	if(processing_reagents)
 		balloon_alert(user, "still processing!")
-		return ..()
+		return
 	replace_beaker(user, FALSE)
 
 /obj/machinery/chem_mass_spec/process(seconds_per_tick)

@@ -61,6 +61,8 @@ GLOBAL_LIST_EMPTY(antagonists)
 	var/default_custom_objective = "Cause chaos on the space station."
 	/// Whether we give a hardcore random bonus for greentexting as this antagonist while playing hardcore random
 	var/hardcore_random_bonus = FALSE
+	/// A path to the audio stinger that plays upon gaining this datum.
+	var/stinger_sound
 
 	//ANTAG UI
 
@@ -126,7 +128,7 @@ GLOBAL_LIST_EMPTY(antagonists)
 		ui = new(user, src, ui_name, name)
 		ui.open()
 
-/datum/antagonist/ui_act(action, params)
+/datum/antagonist/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(.)
 		return
@@ -342,6 +344,14 @@ GLOBAL_LIST_EMPTY(antagonists)
 /datum/antagonist/proc/greet()
 	if(!silent)
 		to_chat(owner.current, span_big("You are \the [src]."))
+		play_stinger()
+
+/// Plays the antag stinger sound, if we have one
+/datum/antagonist/proc/play_stinger()
+	if(isnull(stinger_sound))
+		return
+
+	owner.current.playsound_local(get_turf(owner.current), stinger_sound, 100, FALSE, pressure_affected = FALSE, use_reverb = FALSE)
 
 /**
  * Proc that sends fluff or instructional messages to the player when they lose this antag datum.
@@ -515,6 +525,7 @@ GLOBAL_LIST_EMPTY(antagonists)
 		"antag_team_hud_[REF(src)]",
 		hud_image_on(target),
 		antag_to_check || type,
+		get_team() && WEAKREF(get_team()),
 	))
 
 	// Add HUDs that they couldn't see before
@@ -525,7 +536,7 @@ GLOBAL_LIST_EMPTY(antagonists)
 /// Takes a location, returns an image drawing "on" it that matches this antag datum's hud icon
 /datum/antagonist/proc/hud_image_on(mob/hud_loc)
 	var/image/hud = image(hud_icon, hud_loc, antag_hud_name)
-	SET_PLANE_EXPLICIT(hud, ABOVE_GAME_PLANE, hud_loc)
+	SET_PLANE_EXPLICIT(hud, GAME_PLANE, hud_loc)
 	return hud
 
 ///generic helper to send objectives as data through tgui.

@@ -1,4 +1,5 @@
 /obj/machinery/recharge_station
+	SET_BASE_VISUAL_PIXEL(0, DEPTH_OFFSET)
 	name = "recharging station"
 	desc = "This device recharges energy dependent lifeforms, like cyborgs, ethereals and MODsuit users."
 	icon = 'icons/obj/machines/borg_charger.dmi'
@@ -8,7 +9,7 @@
 	req_access = list(ACCESS_ROBOTICS)
 	state_open = TRUE
 	circuit = /obj/item/circuitboard/machine/cyborgrecharger
-	occupant_typecache = list(/mob/living/silicon/robot, /mob/living/carbon/human)
+	occupant_typecache = list(/mob/living/silicon/robot, /mob/living/carbon/human, /mob/living/circuit_drone)
 	processing_flags = NONE
 	var/recharge_speed
 	var/repairs
@@ -54,10 +55,10 @@
  * Mobs & borgs invoke this through a callback to recharge their cells
  * Arguments
  *
- * * obj/item/stock_parts/cell/target - the cell to charge, optional if provided else will draw power used directly
+ * * obj/item/stock_parts/power_store/cell/target - the cell to charge, optional if provided else will draw power used directly
  * * seconds_per_tick - supplied from process()
  */
-/obj/machinery/recharge_station/proc/charge_target_cell(obj/item/stock_parts/cell/target, seconds_per_tick)
+/obj/machinery/recharge_station/proc/charge_target_cell(obj/item/stock_parts/power_store/cell/target, seconds_per_tick)
 	PRIVATE_PROC(TRUE)
 
 	//charge the cell, account for heat loss from work done
@@ -75,7 +76,7 @@
 		recharge_speed += 5e-3 * capacitor.tier
 	for(var/datum/stock_part/servo/servo in component_parts)
 		repairs += servo.tier - 1
-	for(var/obj/item/stock_parts/cell/cell in component_parts)
+	for(var/obj/item/stock_parts/power_store/cell in component_parts)
 		recharge_speed *= cell.maxcharge
 
 /obj/machinery/recharge_station/examine(mob/user)

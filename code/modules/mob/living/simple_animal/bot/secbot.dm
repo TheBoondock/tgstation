@@ -1,10 +1,12 @@
 /mob/living/simple_animal/bot/secbot
+	SET_BASE_VISUAL_PIXEL(0, 9)
 	name = "\improper Securitron"
 	desc = "A little security robot. He looks less than thrilled."
 	icon = 'icons/mob/silicon/aibots.dmi'
 	icon_state = "secbot"
 	light_color = "#f56275"
 	light_power = 0.8
+	shadow_offset_y = 3
 	density = FALSE
 	anchored = FALSE
 	health = 25
@@ -121,7 +123,7 @@
 
 /mob/living/simple_animal/bot/secbot/beepsky/explode()
 	var/atom/Tsec = drop_location()
-	new /obj/item/stock_parts/cell/potato(Tsec)
+	new /obj/item/stock_parts/power_store/cell/potato(Tsec)
 	var/obj/item/reagent_containers/cup/glass/drinkingglass/shotglass/drinking_oil = new(Tsec)
 	drinking_oil.reagents.add_reagent(/datum/reagent/consumable/ethanol/whiskey, 15)
 	return ..()
@@ -202,9 +204,10 @@
 	return data
 
 // Actions received from TGUI
-/mob/living/simple_animal/bot/secbot/ui_act(action, params)
+/mob/living/simple_animal/bot/secbot/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
-	if(. || (bot_cover_flags & BOT_COVER_LOCKED && !HAS_SILICON_ACCESS(usr)))
+	var/mob/user = ui.user
+	if(. || (bot_cover_flags & BOT_COVER_LOCKED && !HAS_SILICON_ACCESS(user)))
 		return
 
 	switch(action)
@@ -262,7 +265,7 @@
 		if(HAS_TRAIT(user, TRAIT_PACIFISM))
 			user.visible_message(span_notice("[user] taunts [src], daring [p_them()] to give chase!"), \
 				span_notice("You taunt [src], daring [p_them()] to chase you!"), span_hear("You hear someone shout a daring taunt!"), DEFAULT_MESSAGE_RANGE, user)
-			speak("Taunted by pacifist scumbag <b>[user]</b> in [get_area(src)].", radio_channel)
+			speak("Taunted by pacifist scumbag [RUNECHAT_BOLD("[user]")] in [get_area(src)].", radio_channel)
 
 			// Interrupt the attack chain. We've already handled this scenario for pacifists.
 			return
@@ -374,7 +377,7 @@
 	log_combat(src, current_target, "stunned")
 	if(security_mode_flags & SECBOT_DECLARE_ARRESTS)
 		var/area/location = get_area(src)
-		speak("[security_mode_flags & SECBOT_HANDCUFF_TARGET ? "Arresting" : "Detaining"] level [threat] scumbag <b>[current_target]</b> in [location].", radio_channel)
+		speak("[security_mode_flags & SECBOT_HANDCUFF_TARGET ? "Arresting" : "Detaining"] level [threat] scumbag [RUNECHAT_BOLD("[current_target]")] in [location].", radio_channel)
 	current_target.visible_message(span_danger("[src] stuns [current_target]!"),\
 							span_userdanger("[src] stuns you!"))
 

@@ -1,4 +1,5 @@
 /mob/living/basic/mining_drone
+	SET_BASE_VISUAL_PIXEL(0, 6) // Weird offset on the icon file
 	name = "\improper Nanotrasen minebot"
 	desc = "The instructions printed on the side read: This is a small robot used to support miners, can be set to search and collect loose ore, or to help fend off wildlife."
 	gender = NEUTER
@@ -31,6 +32,7 @@
 	light_on = FALSE
 	combat_mode = FALSE
 	ai_controller = /datum/ai_controller/basic_controller/minebot
+	shadow_offset_y = 6
 	///the gun we use to kill
 	var/obj/item/gun/energy/recharge/kinetic_accelerator/minebot/stored_gun
 	///our normal overlay
@@ -215,10 +217,10 @@
 	balloon_alert(user, "now [combat_mode ? "attacking wildlife" : "collecting loose ore"]")
 	return CLICK_ACTION_SUCCESS
 
-/mob/living/basic/mining_drone/RangedAttack(atom/target)
+/mob/living/basic/mining_drone/RangedAttack(atom/target, list/modifiers)
 	if(!combat_mode)
 		return
-	stored_gun.afterattack(target, src)
+	stored_gun.try_fire_gun(target, src, list2params(modifiers))
 
 /mob/living/basic/mining_drone/UnarmedAttack(atom/attack_target, proximity_flag, list/modifiers)
 	. = ..()

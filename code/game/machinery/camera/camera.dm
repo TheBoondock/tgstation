@@ -29,6 +29,8 @@
 	max_integrity = 100
 	integrity_failure = 0.5
 
+	/// Does this camera try to attach to the wall?
+	var/should_wallmount = TRUE
 	///An analyzer in the camera being used for x-ray upgrade.
 	var/obj/item/analyzer/xray_module
 	///used to keep from revealing malf AI upgrades for user facing isXRay() checks when they use Upgrade Camera Network ability
@@ -88,11 +90,12 @@
 	var/area/station/ai_monitored/area_motion = null
 	var/alarm_delay = 30 // Don't forget, there's another 3 seconds in queueAlarm()
 
-MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera, 0)
-MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera/autoname, 0)
-MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera/emp_proof, 0)
-MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera/motion, 0)
-MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera/xray, 0)
+CAMERA_DIRECTIONAL_HELPERS(/obj/machinery/camera)
+CAMERA_DIRECTIONAL_HELPERS(/obj/machinery/camera/autoname)
+CAMERA_DIRECTIONAL_HELPERS(/obj/machinery/camera/autoname/motion)
+CAMERA_DIRECTIONAL_HELPERS(/obj/machinery/camera/emp_proof)
+CAMERA_DIRECTIONAL_HELPERS(/obj/machinery/camera/motion)
+CAMERA_DIRECTIONAL_HELPERS(/obj/machinery/camera/xray)
 
 /datum/armor/machinery_camera
 	melee = 50
@@ -119,14 +122,18 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera/xray, 0)
 	if(camera_enabled)
 		GLOB.cameranet.addCamera(src)
 		LAZYADD(myarea.cameras, src)
+#ifdef MAP_TEST
+		update_appearance()
+#else
 		if(mapload && !start_active && is_station_level(z) && prob(3))
 			toggle_cam()
 		else //this is handled by toggle_camera, so no need to update it twice.
 			update_appearance()
+#endif
 
 	alarm_manager = new(src)
-	find_and_hang_on_wall(directional = TRUE, \
-		custom_drop_callback = CALLBACK(src, PROC_REF(deconstruct), FALSE))
+	if(should_wallmount)
+		find_and_hang_on_wall(directional = TRUE, custom_drop_callback = CALLBACK(src, PROC_REF(deconstruct), FALSE), wall_layer = HIGH_ON_WALL_LAYER)
 
 	RegisterSignal(src, COMSIG_HIT_BY_SABOTEUR, PROC_REF(on_saboteur))
 
@@ -332,6 +339,11 @@ MAPPING_DIRECTIONAL_HELPERS(/obj/machinery/camera/xray, 0)
 		return ..()
 	icon_state = "[xray_module][base_icon_state][in_use_lights ? "_in_use" : ""]"
 	return ..()
+
+/obj/machinery/camera/wall_mount_common_plane(direction)
+	if(direction == SOUTH || direction == NORTHEAST)
+		return TRUE
+	return FALSE
 
 /obj/machinery/camera/proc/toggle_cam(mob/user, displaymessage = TRUE)
 	camera_enabled = !camera_enabled

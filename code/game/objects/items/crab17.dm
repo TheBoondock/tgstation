@@ -43,7 +43,6 @@
 	icon = 'icons/obj/machines/money_machine.dmi'
 	icon_state = "bogdanoff"
 	layer = ABOVE_ALL_MOB_LAYER
-	plane = ABOVE_GAME_PLANE
 	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	density = TRUE
 	pixel_z = -8
@@ -221,14 +220,13 @@
 	pixel_z = 300
 	desc = "Get out of the way!"
 	layer = FLY_LAYER//that wasn't flying, that was falling with style!
-	plane = ABOVE_GAME_PLANE
 	icon_state = "missile_blur"
 
 /obj/effect/dumpeet_target
 	name = "Landing Zone Indicator"
 	desc = "A holographic projection designating the landing zone of something. It's probably best to stand back."
-	icon = 'icons/mob/actions/actions_items.dmi'
-	icon_state = "sniper_zoom"
+	icon = 'icons/mob/telegraphing/telegraph_holographic.dmi'
+	icon_state = "target_circle"
 	layer = PROJECTILE_HIT_THRESHHOLD_LAYER
 	light_range = 2
 	var/obj/effect/dumpeet_fall/DF

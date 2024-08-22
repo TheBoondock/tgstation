@@ -213,7 +213,8 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 			return TRUE
 		if(src.last_message_count >= SPAM_TRIGGER_WARNING)
 			//"auto-ban" sends the message that the cold and uncaring gamecode has been designed to quiash you like a bug in short measure should you continue, and it's quite intentional that the user isn't told exactly what that entails.
-			to_chat(src, span_danger("You are nearing the auto-ban limit for identical messages."))
+			to_chat(src, span_userdanger("You are nearing the auto-ban limit for identical messages."))
+			mob.balloon_alert(mob, "stop spamming!")
 			return FALSE
 	else
 		last_message = message
@@ -480,7 +481,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		display_unread_notes(src, time_stamp)
 	qdel(query_last_connected)
 
-	var/cached_player_age = set_client_age_from_db(tdata) //we have to cache this because other shit may change it and we need it's current value now down below.
+	var/cached_player_age = set_client_age_from_db(tdata) //we have to cache this because other shit may change it and we need its current value now down below.
 	if (isnum(cached_player_age) && cached_player_age == -1) //first connection
 		player_age = 0
 	var/nnpa = CONFIG_GET(number/notify_new_player_age)
@@ -535,7 +536,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	if(!winexists(src, "asset_cache_browser")) // The client is using a custom skin, tell them.
 		to_chat(src, span_warning("Unable to access asset cache browser, if you are using a custom skin file, please allow DS to download the updated version, if you are not, then make a bug report. This is not a critical issue but can cause issues with resource downloading, as it is impossible to know when extra resources arrived to you."))
 
-	update_ambience_pref()
+	update_ambience_pref(prefs.read_preference(/datum/preference/toggle/sound_ambience))
 	check_ip_intel()
 
 	//This is down here because of the browse() calls in tooltip/New()
@@ -836,6 +837,23 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 	if(dragged && button_clicked != dragged)
 		return
 
+	if(mob.turf_click_type != TURF_CLICK_FLAT && isturf(object) && length(modifiers))
+		//Split screen-loc up into X+Pixel_X and Y+Pixel_Y
+		var/list/screen_loc_params = splittext(modifiers[SCREEN_LOC], ",")
+		//Split Y+Pixel_Y up into list(Y, Pixel_Y)
+		var/list/screen_loc_Y = splittext(screen_loc_params[2],":")
+		var/pixel_offset = text2num(screen_loc_Y[2])
+		var/turf/below = get_step(object, SOUTH)
+		if(pixel_offset <= DEPTH_OFFSET && below)
+			object = below // Swap our target, cube click moment
+			if(mob.turf_click_type != TURF_CLICK_CUBE_KEEP_PARAMS)
+				if(modifiers[ICON_Y])
+					modifiers[ICON_Y] = WRAP(text2num(modifiers[ICON_Y]) - DEPTH_OFFSET, 0, world.icon_size)
+				screen_loc_Y[1] -= 1
+				screen_loc_Y[2] =  WRAP(pixel_offset - DEPTH_OFFSET, 0, world.icon_size)
+				screen_loc_params[2] = screen_loc_Y.Join(":")
+				modifiers[SCREEN_LOC] = screen_loc_params.Join(",")
+
 	if (object && IS_WEAKREF_OF(object, middle_drag_atom_ref) && button_clicked == LEFT_CLICK)
 		ab = max(0, 5 SECONDS-(world.time-middragtime)*0.1)
 
@@ -1127,8 +1145,8 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		winset(src, "default.Shift", "is-disabled=true")
 		winset(src, "default.ShiftUp", "is-disabled=true")
 
-/client/proc/update_ambience_pref()
-	if(prefs.read_preference(/datum/preference/toggle/sound_ambience))
+/client/proc/update_ambience_pref(value)
+	if(value)
 		if(SSambience.ambience_listening_clients[src] > world.time)
 			return // If already properly set we don't want to reset the timer.
 		SSambience.ambience_listening_clients[src] = world.time + 10 SECONDS //Just wait 10 seconds before the next one aight mate? cheers.
@@ -1205,6 +1223,7 @@ GLOBAL_LIST_INIT(blacklisted_builds, list(
 		winset(usr, "mainwindow", "can-resize=true")
 		winset(usr, "mainwindow", "is-maximized=false")
 		winset(usr, "mainwindow", "on-size=attempt_auto_fit_viewport")
+	attempt_auto_fit_viewport()
 
 /client/verb/toggle_status_bar()
 	set name = "Toggle Status Bar"

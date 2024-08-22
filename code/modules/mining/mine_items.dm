@@ -160,6 +160,7 @@
 	close_sound = 'sound/machines/trapdoor/trapdoor_shut.ogg'
 	set_dir_on_move = TRUE
 	can_buckle = TRUE
+
 	/// Whether we're on a set of rails or just on the ground
 	var/on_rails = FALSE
 	/// How many turfs we are travelling, also functions as speed (more momentum = faster)
@@ -295,17 +296,16 @@
 	update_rail_state(FALSE)
 	return ..()
 
-/obj/structure/closet/crate/miningcar/MouseDrop(atom/over, src_location, over_location, src_control, over_control, params)
-	. = ..()
-	if(!isliving(usr) || !usr.Adjacent(over) || !usr.Adjacent(src))
+/obj/structure/closet/crate/miningcar/mouse_drop_dragged(atom/over, mob/user, src_location, over_location, params)
+	if(!isliving(user))
 		return
 	if(on_rails)
 		if(isopenturf(over))
-			try_take_off_rails(usr, over)
+			try_take_off_rails(user, over)
 		return
 
 	if(istype(over, /obj/structure/minecart_rail) || (isopenturf(over) && (locate(/obj/structure/minecart_rail) in over)))
-		try_put_on_rails(usr, get_turf(over))
+		try_put_on_rails(user, get_turf(over))
 		return
 
 /**
@@ -521,7 +521,7 @@
 /obj/structure/minecart_rail
 	name = "cart rail"
 	desc = "Carries carts along the track."
-	icon = 'icons/obj/track.dmi'
+	icon = 'icons/obj/structures/track.dmi'
 	icon_state = "track"
 	layer = TRAM_RAIL_LAYER
 	plane = FLOOR_PLANE

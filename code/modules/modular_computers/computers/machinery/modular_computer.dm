@@ -2,6 +2,7 @@
 
 // Modular Computer - A machinery that is mostly just a host to the Modular Computer item.
 /obj/machinery/modular_computer
+	SET_BASE_VISUAL_PIXEL(0, DEPTH_OFFSET)
 	name = "modular computer"
 	desc = "You shouldn't see this. If you do, report it." //they should be examining the processor instead
 	icon = 'icons/obj/machines/modular_console.dmi'
@@ -137,7 +138,7 @@
 
 ///Try to recharge our internal cell if it isn't fully charged.
 /obj/machinery/modular_computer/process(seconds_per_tick)
-	var/obj/item/stock_parts/cell/cell = get_cell()
+	var/obj/item/stock_parts/power_store/cell = get_cell()
 	if(isnull(cell) || cell.percent() >= 100)
 		return
 	charge_cell(idle_power_usage * seconds_per_tick, cell)
@@ -154,8 +155,8 @@
 /obj/machinery/modular_computer/welder_act(mob/user, obj/item/tool)
 	return CPU_INTERACTABLE(user) ? cpu.welder_act(user, tool) : ..()
 
-/obj/machinery/modular_computer/attackby(obj/item/weapon, mob/living/user)
-	return (CPU_INTERACTABLE(user) && !user.combat_mode) ? cpu.attackby(weapon, user) : ..()
+/obj/machinery/modular_computer/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
+	return (CPU_INTERACTABLE(user) && !user.combat_mode) ? cpu.item_interaction(user, tool, modifiers) : ..()
 
 /obj/machinery/modular_computer/attacked_by(obj/item/attacking_item, mob/living/user)
 	return CPU_INTERACTABLE(user) ? cpu.attacked_by(attacking_item, user) : ..()

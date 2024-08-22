@@ -1,4 +1,5 @@
 /obj/machinery/chem_heater
+	SET_BASE_VISUAL_PIXEL(0, DEPTH_OFFSET)
 	name = "reaction chamber" //Maybe this name is more accurate?
 	density = TRUE
 	pass_flags_self = PASSMACHINE | LETPASSTHROW
@@ -96,7 +97,7 @@
 	if(!QDELETED(beaker))
 		if(istype(held_item, /obj/item/reagent_containers/dropper) || istype(held_item, /obj/item/reagent_containers/syringe))
 			var/obj/item/reagent_containers/injector = held_item
-			injector.afterattack(beaker, user, proximity_flag = TRUE)
+			injector.interact_with_atom(beaker, user, modifiers)
 			return ITEM_INTERACT_SUCCESS
 
 	if(is_reagent_container(held_item)  && held_item.is_open_container())
