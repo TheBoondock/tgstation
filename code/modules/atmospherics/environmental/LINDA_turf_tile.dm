@@ -329,16 +329,6 @@
 	cached_ticker += 1
 
 
-	if(priority_dir)
-		var/turf/open/priority_turf = get_step(src, priority_dir)
-		var/turf/open/opposite_turf = get_step(src, turn(priority_dir, 180))
-		//we attempt to push the priority turf to first in the list if it isnt already, then we push the opposite turf to the second position
-		//this is to reserve the side turfs for later
-		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
-			var/turf_index = atmos_adjacent_turfs.Find(priority_turf, 1, 0)
-			atmos_adjacent_turfs.Swap(1,turf_index)
-			turf_index = atmos_adjacent_turfs.Find(opposite_turf, 2, 0)
-			atmos_adjacent_turfs.Swap(2, turf_index)
 
 
 	//cache for sanic speed
@@ -350,9 +340,25 @@
 
 	var/list/share_end
 
+	var/momentum_compare
+
 	#ifdef TRACK_MAX_SHARE
 	max_share = 0 //Gotta reset our tracker
 	#endif
+	if(priority_dir && velocity >= 20)//20 mols is the minimum amount of mols we can move, if we have less then we should diffuse out normally
+		var/turf/open/priority_turf = get_step(src, priority_dir)
+		var/turf/open/opposite_turf = get_step(src, turn(priority_dir, 180))
+		//we attempt to push the priority turf to first in the list if it isnt already, then we push the opposite turf to the second position
+		//this is to reserve the side turfs for later
+		if((priority_turf in atmos_adjacent_turfs) && (atmos_adjacent_turfs[1] != priority_turf))
+			var/turf_index = atmos_adjacent_turfs.Find(priority_turf, 1, 0)
+			atmos_adjacent_turfs.Swap(1,turf_index)
+			turf_index = atmos_adjacent_turfs.Find(opposite_turf, 2, 0)
+			atmos_adjacent_turfs.Swap(2, turf_index)
+			momentum_compare = TOTAL_MOLES(enemy_air) - velocity //put this here so we are sure theres always velocity to subtract
+	else
+		velocity = null
+		priority_dir = null
 
 	for(var/turf/open/enemy_tile as anything in adjacent_turfs)
 		#ifdef UNIT_TESTS
@@ -371,16 +377,19 @@
 		LINDA_CYCLE_ARCHIVE(enemy_tile)
 
 	/******************* GROUP HANDLING START *****************************************************************/
-
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
 		//var/moles_difference = our_air.mol_difference(enemy_air)
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
+		//If our enemy tile has more mols than our velocity then we cannot move and it isn't moving in the same current as us, skip and diffuse around them
 		//If we are both in an excited group, and they aren't the same, merge.
 		//If we are both in an excited group, and you're active, share
 		//If we pass compare, and if we're not already both in a group, lets join up
 		//If we both pass compare, add to active and share
+		if(momentum_compare => 0)
+			priority_dir = null
+			continue
 		if(our_excited_group && enemy_excited_group)
 			if(our_excited_group != enemy_excited_group)
 				//combine groups (this also handles updating the excited_group var of all involved turfs)
@@ -408,6 +417,7 @@
 					pass_momentum(enemy_tile, difference, get_dir(src, enemy_tile))
 				else
 					enemy_tile.consider_pressure_difference(src, -difference)
+					pass_momentum(src, -difference, get_dir(enemy_tile, src))
 			//This acts effectivly as a very slow timer, the max deltas of the group will slowly lower until it breaksdown, they then pop up a bit, and fall back down until irrelevant
 			LAST_SHARE_CHECK
 
@@ -463,7 +473,7 @@
 	SSair.high_pressure_delta |= src
 	if(difference > pressure_difference)
 		pressure_direction = get_dir(src, target_turf)
-		pressure_difference = difference //wtf so pressure difference was really just mol difference this WHOLE TIME?
+		pressure_difference = difference
 
 /turf/open/proc/high_pressure_movements()
 	var/atom/movable/moving_atom
@@ -471,41 +481,35 @@
 		moving_atom = thing
 		if (!moving_atom.anchored && !moving_atom.pulledby && moving_atom.last_high_pressure_movement_air_cycle < SSair.times_fired)
 			moving_atom.experience_pressure_difference(pressure_difference, pressure_direction)
+
 //////////////////////////AIRCURRENT/////////////////////////////
 //Basic idea: when we share pass a certain threshold we impart velocity onto the tile we're sharing
+//1 Kpa should be able to move one mole of gas (arbitrarily chosen)
 //Tiles with velocity will have a direction, which they use to prioritize sharing with the tile in that direction first
 //Velocity is changed when we move something up to our speed, change a tile's direction
 //Velocity equalizes between tiles but momentum is what builds up velocity
 //When our velocity is much lesser than another tile and that tile has a different direction than ours, we attempt to share to the side to simulate air current's path of least resistant
-//IDK this is what i want so far and implementing is hard enough
 
-///impart velocity onto the tiles, momentum measured by mols, and 4 cardinal directions we want it to move in. Used by tiles sharing
+///impart velocity onto the tiles, target_turf is the tile we're imparting on, momentum is the force to move 1 mol measures in Kpa, direction is the vector we're imparting toward
 /turf/open/proc/pass_momentum(turf/open/target_turf, momentum, direction)
-	var/target_dir = target_turf.priority_dir
-	var/velocity_delta = round((velocity + momentum) - target_turf.velocity)
+	var/enemy_mol = TOTAL_MOLES(target_turf.air)
+	var/velocity_delta = round((momentum) - enemy_mol) //1 Kpa moves 1 mol
+
 	if(velocity_delta > 0)
 		if(!target_dir)//no air current on the target
 			target_turf.priority_dir = direction
 		else if(target_dir != direction)//yes air current on target and its not in the same direction, we need enough momentum to change it
-			if(velocity_delta > 40)
+			if(velocity_delta > (enemy_mol / 2)) //force large enough to move half the gas should change its direction too
 				target_turf.priority_dir = direction
-		target_turf.velocity += velocity_delta * 0.5
-		velocity -= velocity_delta *0.5
+		target_turf.velocity += velocity_delta / 2
+		velocity -= velocity_delta / 2
 		return
-	else if(velocity < 0)//so we cant overcome their velocity even with the momentum, both loses some velocity
-		if(!target_dir)
-			target_turf.priority_dir = direction
-		target_turf.velocity *0
-		velocity * 0.1
+	else //so we dont have enough velocity to move the gasses thus we exnpend all our velocity and diffuse outward normally
+		velocity = null
+		priority_dir = null
 		return
 
 
-///compare the momentum and velocity between turfs, return TRUE if it can flow and FALSE if it cannot
-/turf/open/proc/compare_momentum(turf/open/enemy_turf, mol_difference)
-	var/velocity_difference = enemy_turf.velocity - velocity
-	//if we dont have the same flow direction and their velocity or pressure difference is much greater than our, dont flow
-	if((priority_dir != enemy_turf.priority_dir) && (velocity_difference > 100 || (mol_difference > -100)))
-		return FALSE
 
 
 
