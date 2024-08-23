@@ -340,11 +340,12 @@
 
 	var/list/share_end
 
-	var/momentum_compare
+
 
 	#ifdef TRACK_MAX_SHARE
 	max_share = 0 //Gotta reset our tracker
 	#endif
+	// Priority tile handling
 	if(priority_dir && velocity >= 20)//20 mols is the minimum amount of mols we can move, if we have less then we should diffuse out normally
 		var/turf/open/priority_turf = get_step(src, priority_dir)
 		var/turf/open/opposite_turf = get_step(src, turn(priority_dir, 180))
@@ -355,7 +356,6 @@
 			atmos_adjacent_turfs.Swap(1,turf_index)
 			turf_index = atmos_adjacent_turfs.Find(opposite_turf, 2, 0)
 			atmos_adjacent_turfs.Swap(2, turf_index)
-			momentum_compare = TOTAL_MOLES(enemy_air) - velocity //put this here so we are sure theres always velocity to subtract
 	else
 		velocity = null
 		priority_dir = null
@@ -379,7 +379,7 @@
 	/******************* GROUP HANDLING START *****************************************************************/
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
-		//var/moles_difference = our_air.mol_difference(enemy_air)
+		var/enemy_mol = enemy_air.total_moles()
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
 		//If our enemy tile has more mols than our velocity then we cannot move and it isn't moving in the same current as us, skip and diffuse around them
@@ -387,8 +387,9 @@
 		//If we are both in an excited group, and you're active, share
 		//If we pass compare, and if we're not already both in a group, lets join up
 		//If we both pass compare, add to active and share
-		if(momentum_compare => 0)
+		if((enemy_mol - velocity) > 0 && priority_dir)
 			priority_dir = null
+			velocity = null
 			continue
 		if(our_excited_group && enemy_excited_group)
 			if(our_excited_group != enemy_excited_group)
@@ -492,8 +493,9 @@
 
 ///impart velocity onto the tiles, target_turf is the tile we're imparting on, momentum is the force to move 1 mol measures in Kpa, direction is the vector we're imparting toward
 /turf/open/proc/pass_momentum(turf/open/target_turf, momentum, direction)
-	var/enemy_mol = TOTAL_MOLES(target_turf.air)
-	var/velocity_delta = round((momentum) - enemy_mol) //1 Kpa moves 1 mol
+	var/enemy_mol = target_turf.air.total_moles()
+	var/target_dir = target_turf.priority_dir
+	var/velocity_delta = round((momentum - enemy_mol)) //1 Kpa moves 1 mol
 
 	if(velocity_delta > 0)
 		if(!target_dir)//no air current on the target
