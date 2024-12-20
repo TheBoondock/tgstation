@@ -465,10 +465,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
-			if(delta > 0)
-				heat_capacity_self_to_sharer += gas_heat_capacity
-			else
-				heat_capacity_sharer_to_self -= gas_heat_capacity //subtract here instead of adding the absolute value because we know that delta is negative.
+			heat_capacity_self_to_sharer += gas_heat_capacity
 
 		gas[MOLES] -= delta
 		sharergas[MOLES] += delta
@@ -476,6 +473,35 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		abs_moved_moles += abs(delta)
 
 	last_share = abs_moved_moles
+	//THERMAL ENERGY TRANSFER
+	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+		var/new_self_heat_capacity = old_self_heat_capacity + heat_capacity_sharer_to_self - heat_capacity_self_to_sharer
+		var/new_sharer_heat_capacity = old_sharer_heat_capacity + heat_capacity_self_to_sharer - heat_capacity_sharer_to_self
+
+		//transfer of thermal energy (via changed heat capacity) between self and sharer
+		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			temperature = (old_self_heat_capacity*temperature - heat_capacity_self_to_sharer*temperature_archived + heat_capacity_sharer_to_self*sharer.temperature_archived)/new_self_heat_capacity
+
+		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			sharer.temperature = (old_sharer_heat_capacity*sharer.temperature-heat_capacity_sharer_to_self*sharer.temperature_archived + heat_capacity_self_to_sharer*temperature_archived)/new_sharer_heat_capacity
+		//thermal energy of the system (self and sharer) is unchanged
+
+			if(abs(old_sharer_heat_capacity) > MINIMUM_HEAT_CAPACITY)
+				if(abs(new_sharer_heat_capacity/old_sharer_heat_capacity - 1) < 0.1) // <10% change in sharer heat capacity
+					temperature_share(sharer, OPEN_HEAT_TRANSFER_COEFFICIENT)
+
+	if(length(only_in_sharer + only_in_cached)) //if all gases were present in both mixtures, we know that no gases are 0
+		garbage_collect(only_in_cached) //any gases the sharer had, we are guaranteed to have. gases that it didn't have we are not.
+		sharer.garbage_collect(only_in_sharer) //the reverse is equally true
+	else if (initial(sharer.gc_share))
+		sharer.garbage_collect()
+
+	if(temperature_delta > MINIMUM_TEMPERATURE_TO_MOVE || abs(moved_moles) > MINIMUM_MOLES_DELTA_TO_MOVE)
+		var/our_moles
+		TOTAL_MOLES(cached_gases,our_moles)
+		var/their_moles
+		TOTAL_MOLES(sharer_gases,their_moles)
+		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
 ///Performs temperature sharing calculations (via conduction) between two gas_mixtures assuming only 1 boundary length
 ///Returns: new temperature of the sharer
