@@ -426,6 +426,57 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		TOTAL_MOLES(sharer_gases,their_moles)
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
+/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, sharer_coeff)//uneven sharing between A & B tiles A -> B is always the case even if A has less gas/pressure than B because there is inertia pushing it forward
+	var/list/cached_gases = gases
+	var/list/sharer_gases = sharer.gases
+
+	var/list/only_in_sharer = sharer_gases - cached_gases
+	var/list/only_in_cached = cached_gases - sharer_gases
+
+	var/temperature_delta = temperature_archived - sharer.temperature_archived
+	var/abs_temperature_delta = abs(temperature_delta)
+
+	var/old_self_heat_capacity = 0
+	var/old_sharer_heat_capacity = 0
+	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+		old_self_heat_capacity = heat_capacity()
+		old_sharer_heat_capacity = sharer.heat_capacity()
+
+	var/heat_capacity_self_to_sharer = 0 //heat capacity of the moles transferred from us to the sharer
+	var/heat_capacity_sharer_to_self = 0 //heat capacity of the moles transferred from the sharer to us
+
+	var/moved_moles = 0
+	var/abs_moved_moles = 0
+
+//GAS TRANSFER
+
+	//Prep
+	for(var/id in only_in_sharer) //create gases not in our cache
+		ADD_GAS(id, cached_gases)
+	for(var/id in only_in_cached) //create gases not in the sharing mix
+		ADD_GAS(id, sharer_gases)
+
+	for(var/id in cached_gases) //transfer gases
+		var/gas = cached_gases[id]
+		var/sharergas = sharer_gases[id]
+		var/delta = gas[ARCHIVE] * 0.6 //the amount of gas that gets forced moved onto sharer, 60% of total mole
+		if(!delta)
+			return
+
+		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
+			if(delta > 0)
+				heat_capacity_self_to_sharer += gas_heat_capacity
+			else
+				heat_capacity_sharer_to_self -= gas_heat_capacity //subtract here instead of adding the absolute value because we know that delta is negative.
+
+		gas[MOLES] -= delta
+		sharergas[MOLES] += delta
+		moved_moles += delta
+		abs_moved_moles += abs(delta)
+
+	last_share = abs_moved_moles
+
 ///Performs temperature sharing calculations (via conduction) between two gas_mixtures assuming only 1 boundary length
 ///Returns: new temperature of the sharer
 /datum/gas_mixture/proc/temperature_share(datum/gas_mixture/sharer, conduction_coefficient, sharer_temperature, sharer_heat_capacity)
