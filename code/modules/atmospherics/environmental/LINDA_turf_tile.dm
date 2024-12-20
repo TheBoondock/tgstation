@@ -38,7 +38,6 @@
 	var/excited = FALSE
 	///Our gas mix
 	var/datum/gas_mixture/air
-
 	///If there is an active hotspot on us store a reference to it here
 	var/obj/effect/hotspot/active_hotspot
 	/// air will slowly revert to initial_gas_mix
@@ -52,6 +51,8 @@
 	var/significant_share_ticker = 0
 	///the cooldown on playing a fire starting sound each time a tile is ignited
 	COOLDOWN_DECLARE(fire_puff_cooldown)
+	///the direction in which we will share the bulk of our gas mix
+	var/priority_dir
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
 	#endif
@@ -694,6 +695,41 @@ Then we space some of our heat, and think about if we should stop conducting.
 	var/heat = conduction_coefficient * CALCULATE_CONDUCTION_ENERGY(delta_temperature, heat_capacity, sharer.heat_capacity)
 	temperature += heat / heat_capacity //The higher your own heat cap the less heat you get from this arrangement
 	sharer.temperature -= heat / sharer.heat_capacity
+
+//A group of turf that will prioritize sharing in a direction
+/datum/wind_current
+	var/list/vector_turfs
+
+
+/*
+initiate a vector of wind current, containing all the turfs in that current
+source = the starting tile, direction = the dir we want the current to flow
+distance is how far it will travel
+current_act is whether we want it to pull or push in respect to the staring tile
+*/
+
+/datum/wind_current/initiate_vector(turf/source, direction, distance, current_act)
+	var/turf_ahead
+	var/turf_reference
+	var/end_of_vector
+	if(!isclosedturf(source))
+		return
+	vector_turfs += source
+	for(var/i = 0, i <= distance, i++)
+		turf_reference = vector_turfs[i]
+		turf_ahead = get_step(turf_reference, direction)
+		if(isclosedturf(turf_ahead) || !(TURFS_CAN_SHARE(turf_reference, turf_ahead)))
+			end_of_vector = i
+			break
+		vector_turfs += turf_ahead
+		if(current_act == PUSH)
+			turf_ahead.priority_dir = direction
+		else if(current_act == PULL)
+			turf_ahead.priority_dir = turn(direction, 180)
+		vector_turfs[i] = 4 //each tile in the middle of the current would share with a tile ahead of it and 2 tiles to the side for a total of 3 adj tiles, along with itself to make 4 sharing coeff
+		end_of_vector = i
+	vector_turfs[1] = 5//the starting tile would share with 4 others plus itself to have a total of 5 coeff
+	vector_turfs[end_of_vector] = 5 //end tile would also share with 4 others
 
 
 #undef LAST_SHARE_CHECK
