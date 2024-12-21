@@ -708,9 +708,9 @@ distance is how far it will travel
 current_act is whether we want it to pull or push in respect to the staring tile
 */
 
-/datum/wind_current/initiate_vector(turf/source, direction, distance, current_act)
-	var/turf/turf_ahead
-	var/turf/turf_reference
+/datum/wind_current/proc/initiate_vector(turf/source, direction, distance, current_act)
+	var/turf/open/turf_ahead
+	var/turf/open/turf_reference
 	var/end_of_vector
 	if(!isclosedturf(source))
 		return
