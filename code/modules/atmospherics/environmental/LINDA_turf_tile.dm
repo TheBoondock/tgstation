@@ -709,8 +709,8 @@ current_act is whether we want it to pull or push in respect to the staring tile
 */
 
 /datum/wind_current/initiate_vector(turf/source, direction, distance, current_act)
-	var/turf_ahead
-	var/turf_reference
+	var/turf/turf_ahead
+	var/turf/turf_reference
 	var/end_of_vector
 	if(!isclosedturf(source))
 		return
