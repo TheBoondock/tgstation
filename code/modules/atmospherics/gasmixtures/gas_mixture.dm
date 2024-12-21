@@ -426,8 +426,10 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		TOTAL_MOLES(sharer_gases,their_moles)
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
-///uneven sharing between A & B tiles A -> B is always the case even if A has less gas/pressure than B because there is inertia pushing it forward
-/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, portioning_size)
+/*Sharing for gas vector/current we try to prioritize and portion out gas different, the end goal is to give more gas in the the tile we want
+while also gathering gasses from the outside the current and reducing gas lost from the air current
+*/
+/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, sharer_coeff, portioning_size)
 	var/list/cached_gases = gases
 	var/list/sharer_gases = sharer.gases
 
@@ -465,20 +467,21 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		var/gas = cached_gases[id]
 		var/sharergas = sharer_gases[id]
 		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
-		var/deductible
-		if(their_current && our_current)//we both are in a current lets portion things differently
-			if(delta > 0 && )
-				deductible = delta * 1/(INVERSE(our_coeff) - 1)
-
 		if(!delta)
-			break
-		if(portioning_size == 0)
-			if(delta > 0)
-				deductible = delta * 1/(INVERSE(our_coeff))
-			if(portioning_size == 1)
+			continue
+		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile
 		// If we have more gas then they do, gas is moving from us to them
 		// This means we want to scale it by our coeff. Vis versa for their case
-
+		if(delta > 0)
+			if(portioning_size)// Large portion i.e we are giving it to the priority tile and deduct a set amount from all the other tile but the priority
+				delta = delta + deductible * (INVERSE(our_coeff)-1)
+			else
+				delta = delta - deductible //we have more gas than the sharer but we are not sharing it toward a priority tile, thus lets give them a smaller portion
+		else
+			if(portioning_size)//we are sharing with a priority tile but they also have more gas than us, then lets just take their small portion instead
+				delta = delta - deductible
+			else //at this point we are sharing with a tile not in priority but they also have more gas than us, then lets just share like normal
+				delta = delta * sharer_coeff
 
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
@@ -495,6 +498,35 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 
 	last_share = abs_moved_moles
 
+	//THERMAL ENERGY TRANSFER
+	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
+		var/new_self_heat_capacity = old_self_heat_capacity + heat_capacity_sharer_to_self - heat_capacity_self_to_sharer
+		var/new_sharer_heat_capacity = old_sharer_heat_capacity + heat_capacity_self_to_sharer - heat_capacity_sharer_to_self
+
+		//transfer of thermal energy (via changed heat capacity) between self and sharer
+		if(new_self_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			temperature = (old_self_heat_capacity*temperature - heat_capacity_self_to_sharer*temperature_archived + heat_capacity_sharer_to_self*sharer.temperature_archived)/new_self_heat_capacity
+
+		if(new_sharer_heat_capacity > MINIMUM_HEAT_CAPACITY)
+			sharer.temperature = (old_sharer_heat_capacity*sharer.temperature-heat_capacity_sharer_to_self*sharer.temperature_archived + heat_capacity_self_to_sharer*temperature_archived)/new_sharer_heat_capacity
+		//thermal energy of the system (self and sharer) is unchanged
+
+			if(abs(old_sharer_heat_capacity) > MINIMUM_HEAT_CAPACITY)
+				if(abs(new_sharer_heat_capacity/old_sharer_heat_capacity - 1) < 0.1) // <10% change in sharer heat capacity
+					temperature_share(sharer, OPEN_HEAT_TRANSFER_COEFFICIENT)
+
+	if(length(only_in_sharer + only_in_cached)) //if all gases were present in both mixtures, we know that no gases are 0
+		garbage_collect(only_in_cached) //any gases the sharer had, we are guaranteed to have. gases that it didn't have we are not.
+		sharer.garbage_collect(only_in_sharer) //the reverse is equally true
+	else if (initial(sharer.gc_share))
+		sharer.garbage_collect()
+
+	if(temperature_delta > MINIMUM_TEMPERATURE_TO_MOVE || abs(moved_moles) > MINIMUM_MOLES_DELTA_TO_MOVE)
+		var/our_moles
+		TOTAL_MOLES(cached_gases,our_moles)
+		var/their_moles
+		TOTAL_MOLES(sharer_gases,their_moles)
+		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
 
 ///Performs temperature sharing calculations (via conduction) between two gas_mixtures assuming only 1 boundary length
