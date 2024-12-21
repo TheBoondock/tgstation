@@ -427,7 +427,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
 ///uneven sharing between A & B tiles A -> B is always the case even if A has less gas/pressure than B because there is inertia pushing it forward
-/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, tile_in_current)
+/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, portioning_size)
 	var/list/cached_gases = gases
 	var/list/sharer_gases = sharer.gases
 
@@ -451,6 +451,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 
 	var/priority_portion
 	var/lesser_portion
+	var/dir_check
 
 	//GAS TRANSFER
 
@@ -465,18 +466,19 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		var/sharergas = sharer_gases[id]
 		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
 		var/deductible
-		if(!delta)
-			continue
+		if(their_current && our_current)//we both are in a current lets portion things differently
+			if(delta > 0 && )
+				deductible = delta * 1/(INVERSE(our_coeff) - 1)
 
+		if(!delta)
+			break
+		if(portioning_size == 0)
+			if(delta > 0)
+				deductible = delta * 1/(INVERSE(our_coeff))
+			if(portioning_size == 1)
 		// If we have more gas then they do, gas is moving from us to them
 		// This means we want to scale it by our coeff. Vis versa for their case
-		if(delta > 0)
-			delta = delta * our_coeff
-			deductible = delta *0.1
-			lesser_portion = delta - deductible
-			priority_portion = delta + deductible * 1/(1/our_coeff - 1)// should be adding the rest of the deductible from each portion together
-		else
-			delta = delta * sharer_coeff
+
 
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
