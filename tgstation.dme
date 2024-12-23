@@ -3501,6 +3501,7 @@
 #include "code\modules\atmospherics\gasmixtures\reactions.dm"
 #include "code\modules\atmospherics\machinery\atmosmachinery.dm"
 #include "code\modules\atmospherics\machinery\bluespace_vendor.dm"
+#include "code\modules\atmospherics\machinery\current_generator.dm"
 #include "code\modules\atmospherics\machinery\datum_pipeline.dm"
 #include "code\modules\atmospherics\machinery\air_alarm\_air_alarm.dm"
 #include "code\modules\atmospherics\machinery\air_alarm\air_alarm_circuit.dm"

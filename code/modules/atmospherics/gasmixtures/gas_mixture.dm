@@ -429,7 +429,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 /*Sharing for gas vector/current we try to prioritize and portion out gas different, the end goal is to give more gas in the the tile we want
 while also gathering gasses from the outside the current and reducing gas lost from the air current
 */
-/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, sharer_coeff, portioning_size)
+/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, sharer_coeff, is_priority)
 	var/list/cached_gases = gases
 	var/list/sharer_gases = sharer.gases
 
@@ -451,10 +451,6 @@ while also gathering gasses from the outside the current and reducing gas lost f
 	var/moved_moles = 0
 	var/abs_moved_moles = 0
 
-	var/priority_portion
-	var/lesser_portion
-	var/dir_check
-
 	//GAS TRANSFER
 
 	//Prep
@@ -467,22 +463,24 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		var/gas = cached_gases[id]
 		var/sharergas = sharer_gases[id]
 		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
-		if(!delta)
-			continue
 		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile
+		if(!delta)
+			if(is_priority)
+				delta = gas[ARCHIVE] * 0.1 //since we have no diff but it is an air current we will force it over energy
+			else //even gas to a non priority tile, thus we dont do anything as usual
+				continue
 		// If we have more gas then they do, gas is moving from us to them
 		// This means we want to scale it by our coeff. Vis versa for their case
-		if(delta > 0)
-			if(portioning_size)// Large portion i.e we are giving it to the priority tile and deduct a set amount from all the other tile but the priority
+		else if(delta > 0)
+			if(is_priority)// we are giving larger portion to the priority tile and deduct a set amount from all the other tile but the priority
 				delta = delta + deductible * (INVERSE(our_coeff)-1)
 			else
 				delta = delta - deductible //we have more gas than the sharer but we are not sharing it toward a priority tile, thus lets give them a smaller portion
 		else
-			if(portioning_size)//we are sharing with a priority tile but they also have more gas than us, then lets just take their small portion instead
+			if(is_priority)//we are sharing with a priority tile but they also have more gas than us, then lets just take their small portion instead
 				delta = delta - deductible
-			else //at this point we are sharing with a tile not in priority but they also have more gas than us, then lets just share like normal
+			else //at this point we are sharing with a tile not in priority but they also have more gas than us, then lets just share like normal to make the current suck in gas from outside
 				delta = delta * sharer_coeff
-
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]

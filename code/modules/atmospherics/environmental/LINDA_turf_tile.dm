@@ -53,6 +53,9 @@
 	COOLDOWN_DECLARE(fire_puff_cooldown)
 	///the direction in which we will share the bulk of our gas mix
 	var/priority_dir
+	var/current_start
+	var/current_end
+
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
 	#endif
@@ -351,7 +354,26 @@
 		var/datum/gas_mixture/enemy_mix = enemy_tile.air
 		archive()
 		// We share 100% of our mix in this step. Let's jive
-		var/difference = our_air.share(enemy_mix, 1, 1)
+		var/difference
+		if(enemy_tile.priority_dir)//we are sharing with a tile in an air current, lets do some directional check
+			var/enemy_dir = enemy_tile.priority_dir
+			var/our_dir
+			var/is_priority
+			if(priority_dir)//if we have a priority dir i.e in a current lets do some dir check to see if we're sharing with a priority tile
+				our_dir = priority_dir
+				if(our_dir == enemy_dir)
+					is_priority = TRUE
+				else
+					is_priority = FALSE
+
+			else
+				is_priority = FALSE
+			our_air.ushare(enemy_mix, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
+
+		else if(current_start || current_end) //if we are the head/tail of the current and we are sharing with a non priority tile lets try to share as normal to take up more gas/dispell more gas from us
+			difference = our_air.share*()
+		else
+		difference = our_air.share(enemy_mix, 1, 1)
 		LAST_SHARE_CHECK
 		if(!difference)
 			continue
@@ -698,38 +720,69 @@ Then we space some of our heat, and think about if we should stop conducting.
 
 //A group of turf that will prioritize sharing in a direction
 /datum/wind_current
-	var/list/vector_turfs
+	var/list/vector_turfs = list()
+	var/desired_dist
+	var/turf/open/starting_turf
+	var/starting_dir
 
+/datum/wind_current/Destroy(force)
+	. = ..()
+	for(var/turf/open/ref in vector_turfs)
+		ref.priority_dir = null
+		UnregisterSignal(ref, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+	vector_turfs = null
+	desired_dist = null
+	starting_turf = null
+	starting_dir = null
+
+/obj/effect/abstract/wind_current
+	icon = 'icons/turf/overlays.dmi'
+	icon_state = "redOverlay"
 
 /*
 initiate a vector of wind current, containing all the turfs in that current
 source = the starting tile, direction = the dir we want the current to flow
 distance is how far it will travel
-current_act is whether we want it to pull or push in respect to the staring tile
+push is whether we want it to pull or push in respect to the staring tile
 */
 
-/datum/wind_current/proc/initiate_vector(turf/source, direction, distance, current_act)
+/datum/wind_current/proc/initiate_vector(turf/source, direction, distance, push = FALSE)
 	var/turf/open/turf_ahead
 	var/turf/open/turf_reference
-	var/end_of_vector
-	if(!isclosedturf(source))
+	var/end_pos
+	desired_dist = distance
+	starting_dir = direction
+	if(isclosedturf(source))
 		return
 	vector_turfs += source
-	for(var/i = 0, i <= distance, i++)
+	starting_turf = source
+	SSair.add_to_active(starting_turf)
+	starting_turf.run_later = TRUE
+	starting_turf.current_start = TRUE // designate the start of a current
+	for(var/i = 1, i <= distance, i++)
 		turf_reference = vector_turfs[i]
 		turf_ahead = get_step(turf_reference, direction)
 		if(isclosedturf(turf_ahead) || !(TURFS_CAN_SHARE(turf_reference, turf_ahead)))
-			end_of_vector = i
 			break
 		vector_turfs += turf_ahead
-		if(current_act == PUSH)
+		if(push)
 			turf_ahead.priority_dir = direction
-		else if(current_act == PULL)
+		else
 			turf_ahead.priority_dir = turn(direction, 180)
-		vector_turfs[i] = 4 //each tile in the middle of the current would share with a tile ahead of it and 2 tiles to the side for a total of 3 adj tiles, along with itself to make 4 sharing coeff
-		end_of_vector = i
-	vector_turfs[1] = 5//the starting tile would share with 4 others plus itself to have a total of 5 coeff
-	vector_turfs[end_of_vector] = 5 //end tile would also share with 4 others
+
+		SSair.add_to_active(turf_ahead)
+		turf_ahead.run_later = TRUE
+
+		new /obj/effect/abstract/wind_current(src)
+		RegisterSignal(turf_ahead, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, PROC_REF(re_calculate_vector))
+		end_pos = i
+	turf_ahead = vector_turfs[end_pos]
+	turf_ahead.current_end = TRUE //designate an end of the current
+
+
+/datum/wind_current/proc/re_calculate_vector()
+	SIGNAL_HANDLER
+	initiate_vector(starting_turf, starting_dir, desired_dist)
 
 
 #undef LAST_SHARE_CHECK
