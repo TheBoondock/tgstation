@@ -466,7 +466,7 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile
 		if(!delta)
 			if(is_priority)
-				delta = gas[ARCHIVE] * 0.1 //since we have no diff but it is an air current we will force it over energy
+				delta = gas[ARCHIVE] * 0.3 //since we have no diff but it is an air current we will force it over energy
 			else //even gas to a non priority tile, thus we dont do anything as usual
 				continue
 		// If we have more gas then they do, gas is moving from us to them

@@ -310,7 +310,7 @@
 				our_excited_group = excited_group //update our cache
 		if(our_excited_group && enemy_excited_group && enemy_tile.excited) //If you're both excited, no need to compare right?
 			should_share_air = TRUE
-		else if(our_air.compare(enemy_air, ARCHIVE)) //Lets see if you're up for it
+		else if(our_air.compare(enemy_air, ARCHIVE) || priority_dir || enemy_tile.priority_dir) //Lets see if you're up for it, and if one or both of us are in air current share anyway
 			SSair.add_to_active(enemy_tile) //Add yourself young man
 			var/datum/excited_group/existing_group = our_excited_group || enemy_excited_group || new
 			if(!our_excited_group)
@@ -322,7 +322,26 @@
 
 		//air sharing
 		if(should_share_air)
-			var/difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+			var/difference
+			if(enemy_tile.priority_dir)//we are sharing with a tile in an air current, lets do some directional check
+				var/enemy_dir = enemy_tile.priority_dir
+				var/our_dir
+				var/is_priority
+				if(priority_dir)//if we have a priority dir i.e in a current lets do some dir check to see if we're sharing with a priority tile
+					our_dir = priority_dir
+					if(our_dir == enemy_dir)
+						is_priority = TRUE
+					else
+						is_priority = FALSE
+
+				else
+					is_priority = FALSE
+				our_air.ushare(enemy_mix, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
+
+			else if(current_start || current_end) //if we are the head/tail of the current and we are sharing with a non priority tile lets try to share as normal to take up more gas/dispell more gas from us
+				difference = our_air.share(enemy_mix, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+			else
+				difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
@@ -354,26 +373,7 @@
 		var/datum/gas_mixture/enemy_mix = enemy_tile.air
 		archive()
 		// We share 100% of our mix in this step. Let's jive
-		var/difference
-		if(enemy_tile.priority_dir)//we are sharing with a tile in an air current, lets do some directional check
-			var/enemy_dir = enemy_tile.priority_dir
-			var/our_dir
-			var/is_priority
-			if(priority_dir)//if we have a priority dir i.e in a current lets do some dir check to see if we're sharing with a priority tile
-				our_dir = priority_dir
-				if(our_dir == enemy_dir)
-					is_priority = TRUE
-				else
-					is_priority = FALSE
-
-			else
-				is_priority = FALSE
-			our_air.ushare(enemy_mix, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
-
-		else if(current_start || current_end) //if we are the head/tail of the current and we are sharing with a non priority tile lets try to share as normal to take up more gas/dispell more gas from us
-			difference = our_air.share*()
-		else
-		difference = our_air.share(enemy_mix, 1, 1)
+		var/difference = our_air.share(enemy_mix, 1, 1)
 		LAST_SHARE_CHECK
 		if(!difference)
 			continue
@@ -756,8 +756,6 @@ push is whether we want it to pull or push in respect to the staring tile
 		return
 	vector_turfs += source
 	starting_turf = source
-	SSair.add_to_active(starting_turf)
-	starting_turf.run_later = TRUE
 	starting_turf.current_start = TRUE // designate the start of a current
 	for(var/i = 1, i <= distance, i++)
 		turf_reference = vector_turfs[i]
@@ -769,9 +767,6 @@ push is whether we want it to pull or push in respect to the staring tile
 			turf_ahead.priority_dir = direction
 		else
 			turf_ahead.priority_dir = turn(direction, 180)
-
-		SSair.add_to_active(turf_ahead)
-		turf_ahead.run_later = TRUE
 
 		new /obj/effect/abstract/wind_current(src)
 		RegisterSignal(turf_ahead, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, PROC_REF(re_calculate_vector))
