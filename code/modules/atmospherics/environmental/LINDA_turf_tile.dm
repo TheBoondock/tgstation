@@ -53,8 +53,7 @@
 	COOLDOWN_DECLARE(fire_puff_cooldown)
 	///the direction in which we will share the bulk of our gas mix
 	var/priority_dir
-	var/current_start
-	var/current_end
+	var/turf/open/prefer_tile
 
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
@@ -323,24 +322,16 @@
 		//air sharing
 		if(should_share_air)
 			var/difference
-			if(enemy_tile.priority_dir)//we are sharing with a tile in an air current, lets do some directional check
-				var/enemy_dir = enemy_tile.priority_dir
-				var/our_dir
-				var/is_priority
-				if(priority_dir)//if we have a priority dir i.e in a current lets do some dir check to see if we're sharing with a priority tile
-					our_dir = priority_dir
-					if(our_dir == enemy_dir)
-						is_priority = TRUE
-					else
-						is_priority = FALSE
-
-				else
-					is_priority = FALSE
-				our_air.ushare(enemy_mix, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
-
-			else if(current_start || current_end) //if we are the head/tail of the current and we are sharing with a non priority tile lets try to share as normal to take up more gas/dispell more gas from us
-				difference = our_air.share(enemy_mix, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
-			else
+			var/is_priority = FALSE
+			if(prefer_tile)//we have a prefer tile and its the guy
+				if(prefer_tile == enemy_tile)
+					is_priority = TRUE
+				our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
+			else if(enemy_tile.prefer_tile) //they have a prefer tile and we dont i.e we're a tile outside a current sharing with one that is
+				if(enemy_tile.prefer_tile == src)
+					is_priority = TRUE
+				our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
+			else //both dont belong in any current so share like normal
 				difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
 			if(difference)
 				if(difference > 0)
@@ -749,30 +740,27 @@ push is whether we want it to pull or push in respect to the staring tile
 /datum/wind_current/proc/initiate_vector(turf/source, direction, distance, push = FALSE)
 	var/turf/open/turf_ahead
 	var/turf/open/turf_reference
-	var/end_pos
+	var/dir
 	desired_dist = distance
 	starting_dir = direction
 	if(isclosedturf(source))
 		return
 	vector_turfs += source
 	starting_turf = source
-	starting_turf.current_start = TRUE // designate the start of a current
 	for(var/i = 1, i <= distance, i++)
 		turf_reference = vector_turfs[i]
-		turf_ahead = get_step(turf_reference, direction)
+		vector_turfs += turf_ahead
+		if(push)
+			dir = direction
+		else
+			dir = turn(direction, 180)
+		turf_ahead = get_step(turf_reference, dir)
 		if(isclosedturf(turf_ahead) || !(TURFS_CAN_SHARE(turf_reference, turf_ahead)))
 			break
 		vector_turfs += turf_ahead
-		if(push)
-			turf_ahead.priority_dir = direction
-		else
-			turf_ahead.priority_dir = turn(direction, 180)
-
+		turf_reference.prefer_tile = turf_ahead
 		new /obj/effect/abstract/wind_current(src)
-		RegisterSignal(turf_ahead, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, PROC_REF(re_calculate_vector))
-		end_pos = i
-	turf_ahead = vector_turfs[end_pos]
-	turf_ahead.current_end = TRUE //designate an end of the current
+		RegisterSignal(turf_ahead, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, TYPE_PROC_REF(re_calculate_vector))
 
 
 /datum/wind_current/proc/re_calculate_vector()
