@@ -468,7 +468,7 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile
 		// If we have more gas then they do, gas is moving from us to them
 		// This means we want to scale it by our coeff. Vis versa for their case
-		else if(delta > 0)
+		if(delta > 0)
 			if(is_priority)
 				delta = delta + deductible * (INVERSE(our_coeff)-1)
 			else

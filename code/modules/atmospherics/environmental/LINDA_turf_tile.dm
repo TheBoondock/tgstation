@@ -309,7 +309,7 @@
 				our_excited_group = excited_group //update our cache
 		if(our_excited_group && enemy_excited_group && enemy_tile.excited) //If you're both excited, no need to compare right?
 			should_share_air = TRUE
-		else if(our_air.compare(enemy_air, ARCHIVE) || priority_dir || enemy_tile.priority_dir) //Lets see if you're up for it, and if one or both of us are in air current share anyway
+		else if(our_air.compare(enemy_air, ARCHIVE)) //Lets see if you're up for it, and if one or both of us are in air current share anyway
 			SSair.add_to_active(enemy_tile) //Add yourself young man
 			var/datum/excited_group/existing_group = our_excited_group || enemy_excited_group || new
 			if(!our_excited_group)
@@ -760,7 +760,6 @@ push is whether we want it to pull or push in respect to the staring tile
 		vector_turfs += turf_ahead
 		turf_reference.prefer_tile = turf_ahead
 		new /obj/effect/abstract/wind_current(src)
-		RegisterSignal(turf_ahead, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, TYPE_PROC_REF(re_calculate_vector))
 
 
 /datum/wind_current/proc/re_calculate_vector()
