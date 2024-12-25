@@ -51,8 +51,7 @@
 	var/significant_share_ticker = 0
 	///the cooldown on playing a fire starting sound each time a tile is ignited
 	COOLDOWN_DECLARE(fire_puff_cooldown)
-	///the direction in which we will share the bulk of our gas mix
-	var/priority_dir
+	///the turf in which we will share the bulk of our gas mix
 	var/turf/open/prefer_tile
 
 	#ifdef TRACK_MAX_SHARE
@@ -719,7 +718,7 @@ Then we space some of our heat, and think about if we should stop conducting.
 /datum/wind_current/Destroy(force)
 	. = ..()
 	for(var/turf/open/ref in vector_turfs)
-		ref.priority_dir = null
+		ref.prefer_tile = null
 		UnregisterSignal(ref, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
 	vector_turfs = null
 	desired_dist = null
@@ -737,7 +736,7 @@ distance is how far it will travel
 push is whether we want it to pull or push in respect to the staring tile
 */
 
-/datum/wind_current/proc/initiate_vector(turf/source, direction, distance, push = FALSE)
+/datum/wind_current/proc/initiate_vector(turf/source, direction, distance, push = TRUE)
 	var/turf/open/turf_ahead
 	var/turf/open/turf_reference
 	var/dir
@@ -749,7 +748,6 @@ push is whether we want it to pull or push in respect to the staring tile
 	starting_turf = source
 	for(var/i = 1, i <= distance, i++)
 		turf_reference = vector_turfs[i]
-		vector_turfs += turf_ahead
 		if(push)
 			dir = direction
 		else
