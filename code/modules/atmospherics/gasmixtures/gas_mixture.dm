@@ -465,7 +465,7 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
 		if(!delta)
 			continue
-		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile
+		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile, if there 5 portion this ends up to be about 40% of the total delta
 		//If we have priority tile or is someone's priority tile, we take/give a larger portion depending who has more
 		// If we have more than  them, and one of us is priority
 		//lets either take a larger portion or give a larger portion depending who has more
