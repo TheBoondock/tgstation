@@ -326,11 +326,11 @@
 			if(prefer_tile)//we have a prefer tile so lets check whether its with the right tile
 				if(prefer_tile == enemy_tile)
 					is_priority = TRUE
-				our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
+				difference = our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
 			else if(enemy_tile.prefer_tile) //they have a prefer tile so lets see if we're it
 				if(enemy_tile.prefer_tile == src)
 					is_priority = TRUE
-				our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
+				difference = our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority)
 			else //both dont belong in any current so share like normal
 				difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
 			if(difference)

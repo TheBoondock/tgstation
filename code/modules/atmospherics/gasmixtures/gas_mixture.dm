@@ -481,7 +481,6 @@ while also gathering gasses from the outside the current and reducing gas lost f
 				delta = delta - deductible
 			else
 				delta = delta * sharer_coeff
-
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
 			if(delta > 0)
