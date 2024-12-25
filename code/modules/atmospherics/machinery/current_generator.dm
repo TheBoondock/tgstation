@@ -10,3 +10,10 @@
 	var/iturf = loc
 	var/idir = dir
 	fan_blow.initiate_vector(iturf, idir, 6, TRUE)
+
+/obj/machinery/fan/process()
+	. = ..()
+	var/turf/open/ahead = get_step(loc, dir)
+	var/turf/open/behind = get_step(loc, turn(dir, 180))
+	var/datum/gas_mixture/behind_mix = behind.air
+	var/datum/gas_mixture/ahead_mix = ahead.air
