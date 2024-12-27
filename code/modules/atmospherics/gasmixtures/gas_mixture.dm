@@ -465,20 +465,23 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
 		if(!delta)
 			continue
-		var/deductible = delta * 0.1 //10% of each portion taken away to add to priority tile, if there 5 portion this ends up to be about 40% of the total delta
+		var/deductible
 		//If we have priority tile or is someone's priority tile, we take/give a larger portion depending who has more
 		// If we have more than  them, and one of us is priority
 		//lets either take a larger portion or give a larger portion depending who has more
 		if(is_priority)
 			if(delta > 0)
-				delta = delta + deductible * (INVERSE(our_coeff)-1) //we are taking from every other tiles
+				deductible = delta * our_coeff * 0.1 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
+				delta = delta + deductible * (INVERSE(our_coeff)-1)
 			else
+				deductible = delta * sharer_coeff * 0.1
 				delta = delta + deductible * (INVERSE(sharer_coeff)-1)
 		//So we dont have have priority and or sharing with a tile within a current, lets take or give the smaller portion
 		//If we have more gas we can give them the small portion, if they have more gas than us lets share like normal to preserve communative sharing
 		else
 			if(delta > 0)
-				delta = delta - deductible
+				deductible = delta * our_coeff * 0.1
+				delta = delta * our_coeff - deductible
 			else
 				delta = delta * sharer_coeff
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
