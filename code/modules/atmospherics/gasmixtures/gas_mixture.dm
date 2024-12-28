@@ -472,10 +472,10 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		if(is_priority)
 			if(delta > 0)
 				deductible = delta * our_coeff * 0.1 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
-				delta = delta + deductible * (INVERSE(our_coeff)-1)
+				delta = delta * our_coeff + deductible * (INVERSE(our_coeff)-1)
 			else
 				deductible = delta * sharer_coeff * 0.1
-				delta = delta + deductible * (INVERSE(sharer_coeff)-1)
+				delta = delta * our_coeff + deductible * (INVERSE(sharer_coeff)-1)
 		//So we dont have have priority and or sharing with a tile within a current, lets take or give the smaller portion
 		//If we have more gas we can give them the small portion, if they have more gas than us lets share like normal to preserve communative sharing
 		else
