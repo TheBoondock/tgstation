@@ -427,9 +427,9 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
 /*Sharing for gas vector/current we try to prioritize and portion out gas different, the end goal is to give more gas in the the tile we want
-while also gathering gasses from the outside the current and reducing gas lost from the air current
+while also gathering gasses from the outside the current and reducing gas lost from the air curren
 */
-/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, sharer_coeff, is_priority)
+/datum/gas_mixture/proc/ushare(datum/gas_mixture/sharer, our_coeff, sharer_coeff, is_inside, is_priority, is_their_priority)
 	var/list/cached_gases = gases
 	var/list/sharer_gases = sharer.gases
 
@@ -466,24 +466,26 @@ while also gathering gasses from the outside the current and reducing gas lost f
 		if(!delta)
 			continue
 		var/deductible
-		//If we have priority tile or is someone's priority tile, we take/give a larger portion depending who has more
-		// If we have more than  them, and one of us is priority
-		//lets either take a larger portion or give a larger portion depending who has more
-		if(is_priority)
-			if(delta > 0)
-				deductible = delta * our_coeff * 0.1 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
+		//If we have more gas than they do, lets give them some depending which sort of tile they are
+		if(delta > 0)
+			deductible = delta * our_coeff * 0.1 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
+			if(is_inside && is_priority)//we are in a current and they are our prefer tile
 				delta = delta * our_coeff + deductible * (INVERSE(our_coeff)-1)
-			else
-				deductible = delta * sharer_coeff * 0.1
-				delta = delta * our_coeff + deductible * (INVERSE(sharer_coeff)-1)
-		//So we dont have have priority and or sharing with a tile within a current, lets take or give the smaller portion
-		//If we have more gas we can give them the small portion, if they have more gas than us lets share like normal to preserve communative sharing
-		else
-			if(delta > 0)
-				deductible = delta * our_coeff * 0.1
+			else if(is_inside)//we are inside air current but sharing with a tile outside
 				delta = delta * our_coeff - deductible
-			else
+			else//we are outside the current sharing into an air current
+				delta = delta * our_coeff
+		//So we have less gas than them, lets do some checking to see if we're part of a current, if they are our prefer target etc
+		else
+			deductible = delta * sharer_coeff * 0.1
+			if(is_inside && is_priority)//we are part of the current and they are our prefer target, lets take the smaller portion from them
+				delta = delta * sharer_coeff - deductible
+			else if(is_inside && is_their_priority) //we are part of the current sharing with a tile that have us as prefered so lets take their larger portion to make it communative
+				delta = delta * sharer_coeff + (INVERSE(sharer_coeff)-1)
+			else if(is_inside)//we are sharing with a tile outside the current now
 				delta = delta * sharer_coeff
+			else //we are a tile outside the current now
+				delta = delta * sharer_coeff - deductible
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
 			if(delta > 0)
