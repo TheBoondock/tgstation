@@ -721,11 +721,11 @@ Then we space some of our heat, and think about if we should stop conducting.
 /datum/wind_current/Destroy(force)
 	. = ..()
 	for(var/turf/open/ref in vector_turfs)
-	ref.prefer_tile = null
-	vector_turfs = null
-	desired_dist = null
-	starting_turf = null
-	starting_dir = null
+		ref.prefer_tile = null
+		vector_turfs = null
+		desired_dist = null
+		starting_turf = null
+		starting_dir = null
 
 /obj/effect/abstract/wind_current
 	icon = 'icons/turf/overlays.dmi'

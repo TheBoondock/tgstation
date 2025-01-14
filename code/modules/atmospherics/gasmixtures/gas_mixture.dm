@@ -380,7 +380,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 			deductible = delta * our_coeff * 0.1 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
 			if(is_priority)//we are in a current and they are our prefer tile
 				delta = delta * our_coeff + deductible * (INVERSE(our_coeff)-1)
-			else if(is_inside || is_their_priority)
+			else if(inside_current || is_their_priority)
 				delta = delta * our_coeff - deductible
 			else if(they_inside)
 				delta = delta * our_coeff
@@ -393,7 +393,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 				delta = delta * sharer_coeff - deductible
 			else if(is_their_priority) //we are part of the current sharing with a tile that have us as prefered so lets take their larger portion to make it communative
 				delta = delta * sharer_coeff + (INVERSE(sharer_coeff)-1)
-			else if(is_inside && they_inside)//both are inside a current but neither are prefered so only take a the small portion
+			else if(inside_current && they_inside)//both are inside a current but neither are prefered so only take a the small portion
 				delta = delta * sharer_coeff - deductible
 			else if (they_inside)
 				delta = delta * sharer_coeff - deductible
