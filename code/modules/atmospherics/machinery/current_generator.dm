@@ -14,7 +14,7 @@
 	var/iturf = loc
 	var/idir = dir
 	fan_blow.initiate_vector(iturf, idir, 6, TRUE)
-
+/*
 /obj/machinery/atmospherics/fan/process()
 	. = ..()
 	var/turf/open/ahead = get_step(loc, dir)
@@ -30,3 +30,4 @@
 		ahead_mix.assert_gas(gas)
 		ahead_mix[gas][MOLES] += moles_to_suck
 		behind_mix[gas][MOLES] -= moles_to_suck
+*/

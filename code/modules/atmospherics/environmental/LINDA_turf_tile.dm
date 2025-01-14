@@ -324,17 +324,17 @@
 			var/is_priority = FALSE
 			var/inside_current = FALSE
 			var/is_their_priority = FALSE
-			if(enemy_tile.prefer_tile) //they have a prefer tile so lets see if we're it
-				if(enemy_tile.prefer_tile == src)
-					is_their_priority = TRUE
-				difference = our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), inside_current, is_priority, is_their_priority)
-			else if(prefer_tile)//we have a prefer tile so lets check whether its with the right tile
+			var/they_inside = FALSE
+			if(prefer_tile)
 				inside_current = TRUE
-				if(prefer_tile == enemy_tile)
-					is_priority = TRUE
-				difference = our_air.ushare(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), inside_current, is_priority, is_their_priority)
-			else //both dont belong in any current so share like normal
-				difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1))
+			if(enemy_tile.prefer_tile == src)
+				is_their_priority = TRUE
+			if(prefer_tile == enemy_tile)
+				is_priority = TRUE
+			difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority, inside_current, is_their_priority, they_inside)
+			#ifdef TESTING
+			maptext = MAPTEXT(max_share)
+			#endif
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
@@ -721,8 +721,7 @@ Then we space some of our heat, and think about if we should stop conducting.
 /datum/wind_current/Destroy(force)
 	. = ..()
 	for(var/turf/open/ref in vector_turfs)
-		ref.prefer_tile = null
-		UnregisterSignal(ref, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS)
+	ref.prefer_tile = null
 	vector_turfs = null
 	desired_dist = null
 	starting_turf = null
