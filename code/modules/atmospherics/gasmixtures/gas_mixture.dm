@@ -38,6 +38,10 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 	/// I am sorry
 	var/pipeline_cycle = -1
 
+	#ifdef TESTING
+	var/last_delta
+	#endif
+
 /datum/gas_mixture/New(volume)
 	gases = new
 	if(!isnull(volume))
@@ -377,28 +381,22 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		var/deductible
 		//If we have more gas than they do, lets give them some depending which sort of tile they are
 		if(delta > 0)
-			deductible = delta * our_coeff * 0.1 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
+			deductible = delta * our_coeff * 0.5 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
+			delta = delta * our_coeff
 			if(is_priority)//we are in a current and they are our prefer tile
-				delta = delta * our_coeff + deductible * (INVERSE(our_coeff)-1)
+				delta += deductible * (INVERSE(our_coeff)-1)
 			else if(inside_current || is_their_priority)
-				delta = delta * our_coeff - deductible
-			else if(they_inside)
-				delta = delta * our_coeff
-			else//normal sharing for tiles outside current
-				delta = delta * our_coeff
+				delta -= deductible
 		//So we have less gas than them, lets do some checking to see if we're part of a current, if they are our prefer target etc
 		else
-			deductible = delta * sharer_coeff * 0.1
+			deductible = delta * sharer_coeff * 0.5
+			delta = delta * sharer_coeff
 			if(is_priority)//we are part of the current and they are our prefer target, lets take the smaller portion from them
-				delta = delta * sharer_coeff - deductible
+				delta -= deductible
 			else if(is_their_priority) //we are part of the current sharing with a tile that have us as prefered so lets take their larger portion to make it communative
-				delta = delta * sharer_coeff + (INVERSE(sharer_coeff)-1)
-			else if(inside_current && they_inside)//both are inside a current but neither are prefered so only take a the small portion
-				delta = delta * sharer_coeff - deductible
-			else if (they_inside)
-				delta = delta * sharer_coeff - deductible
-			else //we are a tile outside the current now
-				delta = delta * sharer_coeff
+				delta += deductible * (INVERSE(sharer_coeff)-1)
+			else if(they_inside)//both are inside a current but neither are prefered so only take a the small portion
+				delta -= deductible
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
@@ -413,6 +411,10 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		abs_moved_moles += abs(delta)
 
 	last_share = abs_moved_moles
+
+	#ifdef TESTING
+	last_delta = abs_moved_moles
+	#endif
 
 	//THERMAL ENERGY TRANSFER
 	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)

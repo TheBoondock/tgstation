@@ -321,19 +321,23 @@
 		//air sharing
 		if(should_share_air)
 			var/difference
+			//tile directional checking for wind vector
 			var/is_priority = FALSE
 			var/inside_current = FALSE
 			var/is_their_priority = FALSE
 			var/they_inside = FALSE
+
 			if(prefer_tile)
 				inside_current = TRUE
+			if(enemy_tile.prefer_tile)
+				they_inside = TRUE
 			if(enemy_tile.prefer_tile == src)
 				is_their_priority = TRUE
 			if(prefer_tile == enemy_tile)
 				is_priority = TRUE
 			difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority, inside_current, is_their_priority, they_inside)
 			#ifdef TESTING
-			maptext = MAPTEXT(max_share)
+			maptext = MAPTEXT(our_air.last_delta)
 			#endif
 			if(difference)
 				if(difference > 0)
