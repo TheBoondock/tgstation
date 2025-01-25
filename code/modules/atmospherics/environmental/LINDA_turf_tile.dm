@@ -764,9 +764,10 @@ push is whether we want it to pull or push in respect to the staring tile
 		vector_turfs += turf_ahead
 		turf_reference.prefer_tile = turf_ahead
 		new /obj/effect/abstract/wind_current(src)
+		RegisterSignal(turf_ahead, COMSIG_TURF_CALCULATED_ADJACENT_ATMOS, PROC_REF(recalculate_vector))
 
 
-/datum/wind_current/proc/re_calculate_vector()
+/datum/wind_current/proc/recalculate_vector()
 	SIGNAL_HANDLER
 	initiate_vector(starting_turf, starting_dir, desired_dist)
 
