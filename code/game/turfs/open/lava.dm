@@ -225,7 +225,7 @@
 	if(istype(C, /obj/item/cigarette))
 		var/obj/item/cigarette/ciggie = C
 		if(ciggie.lit)
-			to_chat(user, span_warning("The [ciggie.name] is already lit!"))
+			to_chat(user, span_warning("\The [ciggie] is already lit!"))
 			return TRUE
 		var/clumsy_modifier = HAS_TRAIT(user, TRAIT_CLUMSY) ? 2 : 1
 		if(prob(25 * clumsy_modifier) && isliving(user))
@@ -266,12 +266,9 @@
 /turf/open/lava/proc/can_burn_stuff(atom/movable/burn_target)
 	if(QDELETED(burn_target))
 		return LAVA_BE_IGNORING
-	if(burn_target.movement_type & MOVETYPES_NOT_TOUCHING_GROUND || !burn_target.has_gravity()) //you're flying over it.
+	if((burn_target.movement_type & MOVETYPES_NOT_TOUCHING_GROUND) || burn_target.throwing || !burn_target.has_gravity()) //you're flying over it.
 		return LAVA_BE_IGNORING
-
 	if(isobj(burn_target))
-		if(burn_target.throwing) // to avoid gulag prisoners easily escaping, throwing only works for objects.
-			return LAVA_BE_IGNORING
 		var/obj/burn_obj = burn_target
 		if((burn_obj.resistance_flags & immunity_resistance_flags))
 			return LAVA_BE_PROCESSING
@@ -285,7 +282,7 @@
 	var/mob/living/burn_living = burn_target
 	var/atom/movable/burn_buckled = burn_living.buckled
 	if(burn_buckled)
-		if(burn_buckled.movement_type & MOVETYPES_NOT_TOUCHING_GROUND || !burn_buckled.has_gravity())
+		if((burn_buckled.movement_type & MOVETYPES_NOT_TOUCHING_GROUND) || burn_buckled.throwing || !burn_buckled.has_gravity())
 			return LAVA_BE_PROCESSING
 		if(isobj(burn_buckled))
 			var/obj/burn_buckled_obj = burn_buckled
