@@ -446,7 +446,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		TOTAL_MOLES(sharer_gases,their_moles)
 		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
-///Forcibly move gas between mixture without conseideration for sharing coeff or delta
+///Forcibly move gas between mixture without consideration for sharing coeff or delta
 ///Used by wind current generator to create well... wind
 ///force_percent for percentage of our gas to take and move
 /datum/gas_mixture/proc/force_share(datum/gas_mixture/sharer, force_percent)
@@ -489,10 +489,6 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 
 		// If we have more gas then they do, gas is moving from us to them
 		// This means we want to scale it by our coeff. Vis versa for their case
-		if(delta > 0)
-			delta = delta * our_coeff
-		else
-			delta = delta * sharer_coeff
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
