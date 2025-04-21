@@ -48,7 +48,7 @@
 	var/my_message
 	if(!message || !user.mind)
 		return
-	user.whisper("O bidai nabora se[pick("'","`")]sma!", language = /datum/language/common)
+	user.whisper("O bidai nabora se[pick("'","`")]sma!", language = /datum/language/common, forced = "cult invocation")
 	user.whisper(html_decode(message), filterproof = TRUE)
 	var/title = "Acolyte"
 	var/span = "cult italic"
@@ -59,12 +59,12 @@
 	else if(!ishuman(user))
 		title = "Construct"
 	my_message = "<span class='[span]'><b>[title] [findtextEx(user.name, user.real_name) ? user.name : "[user.real_name] (as [user.name])"]:</b> [message]</span>"
-	for(var/mob/M as anything in GLOB.player_list)
-		if(IS_CULTIST(M))
-			to_chat(M, my_message)
-		else if(M in GLOB.dead_mob_list)
-			var/link = FOLLOW_LINK(M, user)
-			to_chat(M, "[link] [my_message]")
+	for(var/mob/listener as anything in GLOB.player_list)
+		if(IS_CULTIST(listener))
+			to_chat(listener, my_message, type = MESSAGE_TYPE_RADIO, avoid_highlighting = listener == user)
+		else if(listener in GLOB.dead_mob_list)
+			var/link = FOLLOW_LINK(listener, user)
+			to_chat(listener, "[link] [my_message]", type = MESSAGE_TYPE_RADIO)
 
 	user.log_talk(message, LOG_SAY, tag="cult")
 
