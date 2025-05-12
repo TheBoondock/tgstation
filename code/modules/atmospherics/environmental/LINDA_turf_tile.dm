@@ -337,8 +337,7 @@
 				is_priority = TRUE
 			difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority, inside_current, is_their_priority, they_inside)
 			#ifdef TESTING
-			var/new_value = round(our_air.last_delta)
-			maptext = MAPTEXT(our_air.last_delta)
+			maptext = MAPTEXT(round(our_air.last_delta))
 			#endif
 			if(difference)
 				if(difference > 0)
