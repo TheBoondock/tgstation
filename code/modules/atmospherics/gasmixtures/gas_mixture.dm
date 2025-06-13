@@ -381,7 +381,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		var/deductible
 		//If we have more gas than they do, lets give them some depending which sort of tile they are
 		if(delta > 0)
-			deductible = delta * our_coeff * 0.5 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
+			deductible = delta * our_coeff * 0.8 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
 			delta = delta * our_coeff
 			if(is_priority)//we are in a current and they are our prefer tile
 				delta += deductible * (INVERSE(our_coeff)-1)
@@ -389,7 +389,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 				delta -= deductible
 		//So we have less gas than them, lets do some checking to see if we're part of a current, if they are our prefer target etc
 		else
-			deductible = delta * sharer_coeff * 0.5
+			deductible = delta * sharer_coeff * 0.8
 			delta = delta * sharer_coeff
 			if(is_priority)//we are part of the current and they are our prefer target, lets take the smaller portion from them
 				delta -= deductible
@@ -409,12 +409,13 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		sharergas[MOLES] += delta
 		moved_moles += delta
 		abs_moved_moles += abs(delta)
-
-	last_share = abs_moved_moles
-
 	#ifdef TESTING
 	last_delta = abs_moved_moles
 	#endif
+
+	last_share = abs_moved_moles
+
+
 
 	//THERMAL ENERGY TRANSFER
 	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
@@ -486,9 +487,6 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 
 		if(!delta)
 			continue
-
-		// If we have more gas then they do, gas is moving from us to them
-		// This means we want to scale it by our coeff. Vis versa for their case
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
