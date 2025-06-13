@@ -35,10 +35,10 @@
 	var/turf/open/our_tile = loc
 	var/datum/gas_mixture/our_mix = our_tile.air
 	var/datum/gas_mixture/ahead_tile_mix = ahead_tile.air
-	SSair.add_to_active(our_tile)
-	SSair.add_to_active(ahead_tile)
 	var/pressure_diff = our_mix.force_share(ahead_tile_mix, 0.5)
 	our_tile.consider_pressure_difference(ahead_tile, pressure_diff)
+	SSair.add_to_active(our_tile)
+	SSair.add_to_active(ahead_tile)
 
 /obj/machinery/atmospherics/fan/Destroy()
 	. = ..()
