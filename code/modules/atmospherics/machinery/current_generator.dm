@@ -7,9 +7,6 @@
 	on = FALSE
 
 
-/obj/machinery/atmospherics/fan/Initialize(mapload)
-	. = ..()
-
 /obj/machinery/atmospherics/fan/click_alt(mob/user)
 	on = !on
 	if(on)

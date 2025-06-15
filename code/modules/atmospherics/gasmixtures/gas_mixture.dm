@@ -483,7 +483,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 	for(var/id in cached_gases) //transfer gases
 		var/gas = cached_gases[id]
 		var/sharergas = sharer_gases[id]
-		var/delta = gas[ARCHIVE] * force_percent //the amount of gas that gets moved between the mixtures
+		var/delta = QUANTIZE(gas[MOLES] * force_percent) //the amount of gas that gets moved between the mixtures
 
 		if(!delta)
 			continue
