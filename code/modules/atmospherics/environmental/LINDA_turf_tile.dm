@@ -8,8 +8,10 @@
 	///All currently stored conductivities changes
 	var/list/thermal_conductivities
 
-	///list of turfs adjacent to us that air can flow onto
+	///list of turfs adjacent to us that air can flow onto, also stores the associated sharing weight of those turfs
 	var/list/atmos_adjacent_turfs
+	///list of current wind direction and the associated speed of those wind currently present on us
+	var/list/air_current = list(NORTH = 0, SOUTH = 0, EAST = 0, WEST = 0)
 	///bitfield of dirs in which we are superconducitng
 	var/atmos_supeconductivity = NONE
 
@@ -40,6 +42,8 @@
 	var/datum/gas_mixture/air
 	///If there is an active hotspot on us store a reference to it here
 	var/obj/effect/hotspot/active_hotspot
+	///If there is an active air current on us store a reference here
+	var/obj/effect/air_current/active_current
 	/// air will slowly revert to initial_gas_mix
 	var/planetary_atmos = FALSE
 	/// once our paired turfs are finished with all other shares, do one 100% share
@@ -264,7 +268,8 @@
 	//cache for sanic speed
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
-	var/our_share_coeff = 1/(LAZYLEN(adjacent_turfs) + 1)
+	var/our_share_coeff = 1/(values_sum(adjacent_turfs) + 1)
+
 
 	var/datum/gas_mixture/our_air = air
 
@@ -294,6 +299,10 @@
 
 		var/should_share_air = FALSE
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
+		//this is the weight we assign the target to
+		var/enemy_weight = adjacent_turfs[enemy_tile]
+		//this is the weight the target tile assigned us to
+		var/our_weight = enemy_tile.atmos_adjacent_turfs[src]
 
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
@@ -335,7 +344,7 @@
 				is_their_priority = TRUE
 			if(prefer_tile == enemy_tile)
 				is_priority = TRUE
-			difference = our_air.share(enemy_air, our_share_coeff, 1 / (LAZYLEN(enemy_tile.atmos_adjacent_turfs) + 1), is_priority, inside_current, is_their_priority, they_inside)
+			difference = our_air.share(enemy_air, our_weighted_total, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
 			#endif
@@ -392,6 +401,18 @@
 
 	significant_share_ticker = cached_ticker //Save our changes
 	temperature_expose(our_air, our_air.temperature)
+
+//iterate over the turfs we can share with and assign a weight to it based on the air current acting upon us
+//all turfs have a weight of 1 initially thus during share() calculation the coeff will be 1*adjacent turfs
+//once theres a turf with extra weight the coeff will be the sum of the weight of adjacent tiles
+//return the total weight of all adjacent tiles
+/turf/open/proc/assign_share_weight(list/air_current)
+	for(var/turf/open/target in atmos_adjacent_turfs)
+		var/dir = get_dir(loc, target.loc)
+		atmos_adjacent_turfs[target] += air_current[dir]
+
+/turf/open/proc/create_current()
+	new /obj/effect/air_current(src)
 
 //////////////////////////SPACEWIND/////////////////////////////
 
@@ -713,6 +734,15 @@ Then we space some of our heat, and think about if we should stop conducting.
 	var/heat = conduction_coefficient * CALCULATE_CONDUCTION_ENERGY(delta_temperature, heat_capacity, sharer.heat_capacity)
 	temperature += heat / heat_capacity //The higher your own heat cap the less heat you get from this arrangement
 	sharer.temperature -= heat / sharer.heat_capacity
+
+/obj/effect/air_current
+	anchored = TRUE
+	layer = GASFIRE_LAYER
+	plane = ABOVE_GAME_PLANE
+
+/obj/effect/air_current/Initialize(mapload)
+	. = ..()
+
 
 //A group of turf that will prioritize sharing in a direction
 /datum/wind_current

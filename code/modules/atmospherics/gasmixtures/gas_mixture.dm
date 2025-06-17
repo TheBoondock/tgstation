@@ -341,7 +341,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 /// share() is communitive, which means A.share(B) needs to be the same as B.share(A)
 /// If we don't retain this, we will get negative moles. Don't do it
 /// Returns: amount of gas exchanged (+ if sharer received)
-/datum/gas_mixture/proc/share(datum/gas_mixture/sharer, our_coeff, sharer_coeff, is_priority, inside_current, is_their_priority, they_inside)
+/datum/gas_mixture/proc/share(datum/gas_mixture/sharer, our_coeff, sharer_coeff, sharer_weight, our_weight)
 	var/list/cached_gases = gases
 	var/list/sharer_gases = sharer.gases
 
@@ -381,22 +381,10 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		var/deductible
 		//If we have more gas than they do, lets give them some depending which sort of tile they are
 		if(delta > 0)
-			deductible = delta * our_coeff * 0.8 //we divide into the porion for every tile then subtract 10% from each to add to the priority tile
-			delta = delta * our_coeff
-			if(is_priority)//we are in a current and they are our prefer tile
-				delta += deductible * (INVERSE(our_coeff)-1)
-			else if(inside_current || is_their_priority)
-				delta -= deductible
+			delta = delta * our_coeff * enemy_weight
 		//So we have less gas than them, lets do some checking to see if we're part of a current, if they are our prefer target etc
 		else
-			deductible = delta * sharer_coeff * 0.8
-			delta = delta * sharer_coeff
-			if(is_priority)//we are part of the current and they are our prefer target, lets take the smaller portion from them
-				delta -= deductible
-			else if(is_their_priority) //we are part of the current sharing with a tile that have us as prefered so lets take their larger portion to make it communative
-				delta += deductible * (INVERSE(sharer_coeff)-1)
-			else if(they_inside)//both are inside a current but neither are prefered so only take a the small portion
-				delta -= deductible
+			delta = delta * sharer_coeff * our_weight
 
 		if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
 			var/gas_heat_capacity = delta * gas[GAS_META][META_GAS_SPECIFIC_HEAT]
@@ -457,7 +445,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 	var/list/only_in_sharer = sharer_gases - cached_gases
 	var/list/only_in_cached = cached_gases - sharer_gases
 
-	var/temperature_delta = temperature_archived - sharer.temperature_archived
+	var/temperature_delta = temperature - sharer.temperature
 	var/abs_temperature_delta = abs(temperature_delta)
 
 	var/old_self_heat_capacity = 0
@@ -528,7 +516,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		TOTAL_MOLES(cached_gases,our_moles)
 		var/their_moles
 		TOTAL_MOLES(sharer_gases,their_moles)
-		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
+		return (max(temperature_delta, 1) * (moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
 ///Performs temperature sharing calculations (via conduction) between two gas_mixtures assuming only 1 boundary length
 ///Returns: new temperature of the sharer

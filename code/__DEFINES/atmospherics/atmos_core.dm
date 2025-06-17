@@ -175,6 +175,8 @@
 #define MAKE_ACTIVE 2
 ///Disable excited group
 #define KILL_EXCITED 3
+///Set the default weight of each adjacent turf, used for weighted sharing
+#define BASE_WEIGHT 1
 
 /// How many maximum iterations do we allow the Newton-Raphson approximation for gas pressure to do.
 #define ATMOS_PRESSURE_APPROXIMATION_ITERATIONS 20

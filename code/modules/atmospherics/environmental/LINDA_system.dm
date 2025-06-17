@@ -95,8 +95,8 @@
 		// (direction & (UP | DOWN)) is just "is this vertical" by the by
 		if(canpass && CANATMOSPASS(current_turf, src, (direction & (UP|DOWN))) && !(blocks_air || current_turf.blocks_air))
 			LAZYINITLIST(current_turf.atmos_adjacent_turfs)
-			atmos_adjacent_turfs[current_turf] = TRUE
-			current_turf.atmos_adjacent_turfs[src] = TRUE
+			atmos_adjacent_turfs[current_turf] = BASE_WEIGHT
+			current_turf.atmos_adjacent_turfs[src] = BASE_WEIGHT
 		else
 			atmos_adjacent_turfs -= current_turf
 			if (current_turf.atmos_adjacent_turfs)
@@ -121,8 +121,8 @@
 		// (direction & (UP | DOWN)) is just "is this vertical" by the by
 		if(canpass && CANATMOSPASS(current_turf, src, (direction & (UP|DOWN))) && !(blocks_air || current_turf.blocks_air))
 			LAZYINITLIST(current_turf.atmos_adjacent_turfs)
-			atmos_adjacent_turfs[current_turf] = TRUE
-			current_turf.atmos_adjacent_turfs[src] = TRUE
+			atmos_adjacent_turfs[current_turf] = BASE_WEIGHT
+			current_turf.atmos_adjacent_turfs[src] = BASE_WEIGHT
 		else
 			atmos_adjacent_turfs -= current_turf
 			if (current_turf.atmos_adjacent_turfs)
