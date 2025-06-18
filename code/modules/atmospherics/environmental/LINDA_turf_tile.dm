@@ -344,7 +344,8 @@
 				is_their_priority = TRUE
 			if(prefer_tile == enemy_tile)
 				is_priority = TRUE
-			difference = our_air.share(enemy_air, our_weighted_total, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
+			difference = our_air.share(enemy_air, our_share_coeff, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
+
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
 			#endif
@@ -411,8 +412,10 @@
 		var/dir = get_dir(loc, target.loc)
 		atmos_adjacent_turfs[target] += air_current[dir]
 
-/turf/open/proc/create_current()
+/turf/open/proc/create_current(speed, direction)
 	new /obj/effect/air_current(src)
+	var/turf/open/target = get_step(loc, direction)
+	if()
 
 //////////////////////////SPACEWIND/////////////////////////////
 
