@@ -378,7 +378,6 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		var/delta = QUANTIZE(gas[ARCHIVE] - sharergas[ARCHIVE]) //the amount of gas that gets moved between the mixtures
 		if(!delta)
 			continue
-		var/deductible
 		//If we have more gas than they do, lets give them some depending which sort of tile they are
 		if(delta > 0)
 			delta = delta * our_coeff * enemy_weight

@@ -33,7 +33,6 @@
 	var/pressure_difference = 0
 	///Where the difference come from (from higher pressure to lower pressure)
 	var/pressure_direction = 0
-
 	///Excited group we are part of
 	var/datum/excited_group/excited_group
 	///Are we active?
@@ -55,9 +54,8 @@
 	var/significant_share_ticker = 0
 	///the cooldown on playing a fire starting sound each time a tile is ignited
 	COOLDOWN_DECLARE(fire_puff_cooldown)
-	///the turf in which we will share the bulk of our gas mix
-	var/turf/open/prefer_tile
-
+	///list of momentum being applied on us
+	var/list/applied_wind = list(NORTH, SOUTH, EAST, WEST)
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
 	#endif
@@ -303,6 +301,7 @@
 		var/enemy_weight = adjacent_turfs[enemy_tile]
 		//this is the weight the target tile assigned us to
 		var/our_weight = enemy_tile.atmos_adjacent_turfs[src]
+		var/enemy_dir = get_dir(src, enemy_tile)
 
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
@@ -329,22 +328,12 @@
 
 		//air sharing
 		if(should_share_air)
+			resolve_momentum()
 			var/difference
-			//tile directional checking for wind vector
-			var/is_priority = FALSE
-			var/inside_current = FALSE
-			var/is_their_priority = FALSE
-			var/they_inside = FALSE
-
-			if(prefer_tile)
-				inside_current = TRUE
-			if(enemy_tile.prefer_tile)
-				they_inside = TRUE
-			if(enemy_tile.prefer_tile == src)
-				is_their_priority = TRUE
-			if(prefer_tile == enemy_tile)
-				is_priority = TRUE
 			difference = our_air.share(enemy_air, our_share_coeff, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
+			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
+			enemy_tile.applied_wind[enemy_dir] += enemy_weight
+			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile] -= 1), 1) //prevent 0 value being assigned
 
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
@@ -407,15 +396,15 @@
 //all turfs have a weight of 1 initially thus during share() calculation the coeff will be 1*adjacent turfs
 //once theres a turf with extra weight the coeff will be the sum of the weight of adjacent tiles
 //return the total weight of all adjacent tiles
-/turf/open/proc/assign_share_weight(list/air_current)
-	for(var/turf/open/target in atmos_adjacent_turfs)
-		var/dir = get_dir(loc, target.loc)
-		atmos_adjacent_turfs[target] += air_current[dir]
+/turf/open/proc/resolve_momentum()
+	for(var/wind_dir in applied_wind)
+		if(!wind_dir)
+			continue
+		var/turf/possible_target = get_step(src, wind_dir)
+		if(possible_target in atmos_adjacent_turfs)
+			atmos_adjacent_turfs[possible_target] += wind_dir
+			wind_dir = 0
 
-/turf/open/proc/create_current(speed, direction)
-	new /obj/effect/air_current(src)
-	var/turf/open/target = get_step(loc, direction)
-	if()
 
 //////////////////////////SPACEWIND/////////////////////////////
 
@@ -747,7 +736,7 @@ Then we space some of our heat, and think about if we should stop conducting.
 	. = ..()
 
 
-//A group of turf that will prioritize sharing in a direction
+/*
 /datum/wind_current
 	var/list/vector_turfs = list()
 	var/desired_dist
@@ -803,6 +792,6 @@ push is whether we want it to pull or push in respect to the staring tile
 	SIGNAL_HANDLER
 	initiate_vector(starting_turf, starting_dir, desired_dist)
 
-
+*/
 #undef LAST_SHARE_CHECK
 #undef PLANET_SHARE_CHECK
