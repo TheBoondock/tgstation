@@ -277,6 +277,7 @@
 	max_share = 0 //Gotta reset our tracker
 	#endif
 
+	resolve_momentum()
 	for(var/turf/open/enemy_tile as anything in adjacent_turfs)
 		#ifdef UNIT_TESTS
 		if(!istype(enemy_tile))
@@ -328,7 +329,6 @@
 
 		//air sharing
 		if(should_share_air)
-			resolve_momentum()
 			var/difference
 			difference = our_air.share(enemy_air, our_share_coeff, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
 			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
