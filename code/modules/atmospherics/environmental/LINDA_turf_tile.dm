@@ -55,7 +55,7 @@
 	///the cooldown on playing a fire starting sound each time a tile is ignited
 	COOLDOWN_DECLARE(fire_puff_cooldown)
 	///list of momentum being applied on us
-	var/list/applied_wind = list(NORTH, SOUTH, EAST, WEST)
+	var/list/applied_wind = list("north" = 0, "south" = 0, "east" = 0, "west" = 0)
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
 	#endif
@@ -264,6 +264,7 @@
 	cached_ticker += 1
 
 	//cache for sanic speed
+	resolve_momentum() //resolve any pending momentum on us
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
 	var/our_share_coeff = 1/(values_sum(adjacent_turfs) + 1)
@@ -277,7 +278,6 @@
 	max_share = 0 //Gotta reset our tracker
 	#endif
 
-	resolve_momentum()
 	for(var/turf/open/enemy_tile as anything in adjacent_turfs)
 		#ifdef UNIT_TESTS
 		if(!istype(enemy_tile))
@@ -332,8 +332,8 @@
 			var/difference
 			difference = our_air.share(enemy_air, our_share_coeff, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
 			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
-			enemy_tile.applied_wind[enemy_dir] += enemy_weight
-			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile] -= 1), 1) //prevent 0 value being assigned
+			enemy_tile.applied_wind[dir2text(enemy_dir)] += enemy_weight
+			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile]--), 1) //reduce the weight we have for the enemy tile to minimum of 1
 
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
@@ -400,10 +400,12 @@
 	for(var/wind_dir in applied_wind)
 		if(!wind_dir)
 			continue
-		var/turf/possible_target = get_step(src, wind_dir)
-		if(possible_target in atmos_adjacent_turfs)
+		var/turf/open/possible_target = get_step(src, text2dir(wind_dir))
+		if(atmos_adjacent_turfs[possible_target] && istype(possible_target))
 			atmos_adjacent_turfs[possible_target] += wind_dir
 			wind_dir = 0
+		else
+			continue
 
 
 //////////////////////////SPACEWIND/////////////////////////////

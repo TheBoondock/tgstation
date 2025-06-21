@@ -515,7 +515,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		TOTAL_MOLES(cached_gases,our_moles)
 		var/their_moles
 		TOTAL_MOLES(sharer_gases,their_moles)
-		return (max(temperature_delta, 1) * (moved_moles)) * R_IDEAL_GAS_EQUATION / volume
+		return (temperature_archived*(our_moles + moved_moles) - sharer.temperature_archived*(their_moles - moved_moles)) * R_IDEAL_GAS_EQUATION / volume
 
 ///Performs temperature sharing calculations (via conduction) between two gas_mixtures assuming only 1 boundary length
 ///Returns: new temperature of the sharer
