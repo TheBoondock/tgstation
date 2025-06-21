@@ -338,6 +338,7 @@
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
 			#endif
+
 			if(difference)
 				if(difference > 0)
 					consider_pressure_difference(enemy_tile, difference)
@@ -402,8 +403,8 @@
 			continue
 		var/turf/open/possible_target = get_step(src, text2dir(wind_dir))
 		if(atmos_adjacent_turfs[possible_target] && istype(possible_target))
-			atmos_adjacent_turfs[possible_target] += wind_dir
-			wind_dir = 0
+			atmos_adjacent_turfs[possible_target] = max(applied_wind[wind_dir],0)
+			applied_wind[wind_dir] = 0
 		else
 			continue
 
