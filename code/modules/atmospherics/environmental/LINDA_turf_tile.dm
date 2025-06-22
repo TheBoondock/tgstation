@@ -271,7 +271,7 @@
 	resolve_momentum() //resolve any pending momentum on us
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
-	var/our_share_coeff = sum_weight(adjacent_turfs)
+	var/our_share_coeff = 1/(values_sum(adjacent_turfs) + 1)
 
 
 	var/datum/gas_mixture/our_air = air
@@ -334,7 +334,7 @@
 		//air sharing
 		if(should_share_air)
 			var/difference
-			difference = our_air.share(enemy_air, our_share_coeff, sum_weight(enemy_tile.atmos_adjacent_turfs), enemy_weight, our_weight)
+			difference = our_air.share(enemy_air, our_share_coeff, 1/(values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
 			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
 			enemy_tile.applied_wind[dir2text(enemy_dir)] = enemy_weight--
 			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile]--), 1) //reduce the weight we have for the enemy tile by 1 to a minimum of 1
