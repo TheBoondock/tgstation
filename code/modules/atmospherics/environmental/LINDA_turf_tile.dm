@@ -60,6 +60,10 @@
 	var/max_share = 0
 	#endif
 
+	#ifdef TESTING
+	var/is_windy
+	#endif
+
 /turf/open/Initialize(mapload)
 	if(!blocks_air)
 		air = create_gas_mixture()
@@ -267,7 +271,7 @@
 	resolve_momentum() //resolve any pending momentum on us
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
-	var/our_share_coeff = 1/(values_sum(adjacent_turfs) + 1)
+	var/our_share_coeff = sum_weight(adjacent_turfs)
 
 
 	var/datum/gas_mixture/our_air = air
@@ -330,10 +334,10 @@
 		//air sharing
 		if(should_share_air)
 			var/difference
-			difference = our_air.share(enemy_air, our_share_coeff, 1 / (values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
+			difference = our_air.share(enemy_air, our_share_coeff, sum_weight(enemy_tile.atmos_adjacent_turfs), enemy_weight, our_weight)
 			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
-			enemy_tile.applied_wind[dir2text(enemy_dir)] += enemy_weight
-			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile]--), 1) //reduce the weight we have for the enemy tile to minimum of 1
+			enemy_tile.applied_wind[dir2text(enemy_dir)] = enemy_weight--
+			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile]--), 1) //reduce the weight we have for the enemy tile by 1 to a minimum of 1
 
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
@@ -403,11 +407,18 @@
 			continue
 		var/turf/open/possible_target = get_step(src, text2dir(wind_dir))
 		if(atmos_adjacent_turfs[possible_target] && istype(possible_target))
-			atmos_adjacent_turfs[possible_target] = max(applied_wind[wind_dir],0)
+			atmos_adjacent_turfs[possible_target] = max(applied_wind[wind_dir],1) //default weight is 1
 			applied_wind[wind_dir] = 0
 		else
 			continue
 
+/turf/open/proc/sum_weight(list/values_list)
+	var/sum
+	for(var/turf/open/ref_turf as anything in values_list)
+		sum += values_list[ref_turf]
+	if(sum >= 5)
+		is_windy = TRUE
+	return 1/(sum+ 1)
 
 //////////////////////////SPACEWIND/////////////////////////////
 
