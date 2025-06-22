@@ -482,6 +482,9 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 		abs_moved_moles += abs(delta)
 
 	last_share = abs_moved_moles
+	#ifdef TESTING
+	last_delta = abs_moved_moles
+	#endif
 
 	//THERMAL ENERGY TRANSFER
 	if(abs_temperature_delta > MINIMUM_TEMPERATURE_DELTA_TO_CONSIDER)
