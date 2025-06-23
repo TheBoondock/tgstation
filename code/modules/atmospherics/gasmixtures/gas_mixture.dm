@@ -341,7 +341,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 /// share() is communitive, which means A.share(B) needs to be the same as B.share(A)
 /// If we don't retain this, we will get negative moles. Don't do it
 /// Returns: amount of gas exchanged (+ if sharer received)
-/datum/gas_mixture/proc/share(datum/gas_mixture/sharer, our_coeff, sharer_coeff, sharer_weight, our_weight, enemy_weight)
+/datum/gas_mixture/proc/share(datum/gas_mixture/sharer, our_coeff, sharer_coeff, sharer_weight, our_weight)
 	var/list/cached_gases = gases
 	var/list/sharer_gases = sharer.gases
 
@@ -380,7 +380,7 @@ GLOBAL_LIST_INIT(gaslist_cache, init_gaslist_cache())
 			continue
 		//If we have more gas than they do, lets give them some depending which sort of tile they are
 		if(delta > 0)
-			delta = delta * our_coeff * enemy_weight
+			delta = delta * our_coeff * sharer_weight
 		//So we have less gas than them, lets do some checking to see if we're part of a current, if they are our prefer target etc
 		else
 			delta = delta * sharer_coeff * our_weight

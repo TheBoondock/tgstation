@@ -271,7 +271,8 @@
 	resolve_momentum() //resolve any pending momentum on us
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
-	var/our_share_coeff = 1/(values_sum(adjacent_turfs) + 1)
+	var/our_sum_weight = sum_weight(adjacent_turfs) + 1
+	var/our_share_coeff = 1/our_sum_weight
 
 
 	var/datum/gas_mixture/our_air = air
@@ -307,6 +308,8 @@
 		//this is the weight the target tile assigned us to
 		var/our_weight = enemy_tile.atmos_adjacent_turfs[src]
 		var/enemy_dir = get_dir(src, enemy_tile)
+		var/their_sum_weight = sum_weight(enemy_tile.atmos_adjacent_turfs)
+		var/their_coeff = 1/(their_sum_weight + 1)
 
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
@@ -334,10 +337,12 @@
 		//air sharing
 		if(should_share_air)
 			var/difference
-			difference = our_air.share(enemy_air, our_share_coeff, 1/(values_sum(enemy_tile.atmos_adjacent_turfs) + 1), enemy_weight, our_weight)
+			difference = our_air.share(enemy_air, our_share_coeff, their_coeff, enemy_weight, our_weight)
 			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
-			enemy_tile.applied_wind[dir2text(enemy_dir)] = enemy_weight - 1
-			atmos_adjacent_turfs[enemy_tile] = max((atmos_adjacent_turfs[enemy_tile] - 1), 1) //reduce the weight we have for the enemy tile by 1 to a minimum of 1
+			var/testing_output = dir2text(enemy_dir)
+			enemy_weight = max((enemy_weight - 1), 1) //reduce the weight we have for the enemy tile by 1 to a minimum of 1
+			enemy_tile.applied_wind[testing_output] = enemy_weight
+			adjacent_turfs[enemy_tile] = enemy_weight
 
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
@@ -418,7 +423,7 @@
 		sum += values_list[ref_turf]
 	if(sum >= 5)
 		is_windy = TRUE
-	return 1/(sum+ 1)
+	return sum
 
 //////////////////////////SPACEWIND/////////////////////////////
 
