@@ -31,7 +31,7 @@
 	var/datum/gas_mixture/our_mix = our_tile.air
 	var/datum/gas_mixture/ahead_tile_mix = ahead_tile.air
 	our_mix.force_share(ahead_tile_mix, 0.5)
-	ahead_tile.applied_wind[dir2text(dir)] = 6
+	LAZYSET(ahead_tile.applied_wind, dir2text(dir), 6)
 
 
 	SSair.add_to_active(our_tile)

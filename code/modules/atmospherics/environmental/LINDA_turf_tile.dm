@@ -10,8 +10,6 @@
 
 	///list of turfs adjacent to us that air can flow onto, also stores the associated sharing weight of those turfs
 	var/list/atmos_adjacent_turfs
-	///list of current wind direction and the associated speed of those wind currently present on us
-	var/list/air_current = list(NORTH = 0, SOUTH = 0, EAST = 0, WEST = 0)
 	///bitfield of dirs in which we are superconducitng
 	var/atmos_supeconductivity = NONE
 
@@ -55,7 +53,9 @@
 	///the cooldown on playing a fire starting sound each time a tile is ignited
 	COOLDOWN_DECLARE(fire_puff_cooldown)
 	///list of momentum being applied on us
-	var/list/applied_wind = list("north" = 0, "south" = 0, "east" = 0, "west" = 0)
+	var/list/applied_wind
+	///list of weight vlaues for our neighbors
+	var/list/neighbor_weight
 	#ifdef TRACK_MAX_SHARE
 	var/max_share = 0
 	#endif
@@ -266,13 +266,14 @@
 	current_cycle = fire_count
 	var/cached_ticker = significant_share_ticker
 	cached_ticker += 1
-
 	//cache for sanic speed
-	resolve_momentum() //resolve any pending momentum on us
 	var/list/adjacent_turfs = atmos_adjacent_turfs
 	var/datum/excited_group/our_excited_group = excited_group
-	var/our_sum_weight = sum_weight(adjacent_turfs) + 1
-	var/our_share_coeff = 1/our_sum_weight
+	neighbor_weight = LAZYCOPY(adjacent_turfs)
+	if(applied_wind)
+		resolve_momentum() //resolve any pending momentum on us
+	var/our_sum_weight = sum_weight(neighbor_weight)
+	var/our_share_coeff = 1/(our_sum_weight + 1)
 
 
 	var/datum/gas_mixture/our_air = air
@@ -305,11 +306,7 @@
 		var/datum/gas_mixture/enemy_air = enemy_tile.air
 		//this is the weight we assign the target to
 		var/enemy_weight = adjacent_turfs[enemy_tile]
-		//this is the weight the target tile assigned us to
-		var/our_weight = enemy_tile.atmos_adjacent_turfs[src]
 		var/enemy_dir = get_dir(src, enemy_tile)
-		var/their_sum_weight = sum_weight(enemy_tile.atmos_adjacent_turfs)
-		var/their_coeff = 1/(their_sum_weight + 1)
 
 		//cache for sanic speed
 		var/datum/excited_group/enemy_excited_group = enemy_tile.excited_group
@@ -336,13 +333,22 @@
 
 		//air sharing
 		if(should_share_air)
+			if(isnull(enemy_tile.atmos_adjacent_turfs))
+				enemy_tile.neighbor_weight = LAZYCOPY(enemy_tile.atmos_adjacent_turfs)
+			//this is the weight the target tile assigned us to
+			var/our_weight = (enemy_tile.atmos_adjacent_turfs[src]) ? (enemy_tile.atmos_adjacent_turfs[src]) : 1 //if they have weight value for us use that else default to 1
+			var/their_sum_weight = sum_weight(enemy_tile.neighbor_weight)
+			var/their_coeff = 1/(their_sum_weight + 1)
 			var/difference
+			//var/testing_sum = values_sum(adjacent_turfs)
 			difference = our_air.share(enemy_air, our_share_coeff, their_coeff, enemy_weight, our_weight)
 			//Apply momentum to the tile we're sharing it with, this tile then resolve its momentum on its turn
 			var/testing_output = dir2text(enemy_dir)
-			enemy_weight = max((enemy_weight - 1), 1) //reduce the weight we have for the enemy tile by 1 to a minimum of 1
-			enemy_tile.applied_wind[testing_output] = enemy_weight
-			adjacent_turfs[enemy_tile] = enemy_weight
+			//ok to avoid populating every time we can do this instead so only tiles with spacewind would gain momentum
+			if(enemy_weight > 1)
+				enemy_weight = max((enemy_weight - 1), 1) //reduce the weight we have for the enemy tile by 1 to a minimum of 1
+				LAZYSET(enemy_tile.applied_wind, testing_output, enemy_weight)
+				neighbor_weight[enemy_tile] = enemy_weight
 
 			#ifdef TESTING
 			maptext = MAPTEXT(round(our_air.last_delta))
@@ -403,17 +409,12 @@
 	temperature_expose(our_air, our_air.temperature)
 
 //iterate over the turfs we can share with and assign a weight to it based on the air current acting upon us
-//all turfs have a weight of 1 initially thus during share() calculation the coeff will be 1*adjacent turfs
-//once theres a turf with extra weight the coeff will be the sum of the weight of adjacent tiles
-//return the total weight of all adjacent tiles
+//all turfs have a weight of 1 initially thus during share() calculation the coeff will be 1/adjacent turfs
 /turf/open/proc/resolve_momentum()
 	for(var/wind_dir in applied_wind)
-		if(!wind_dir)
-			continue
 		var/turf/open/possible_target = get_step(src, text2dir(wind_dir))
-		if(atmos_adjacent_turfs[possible_target] && istype(possible_target))
-			atmos_adjacent_turfs[possible_target] = max(applied_wind[wind_dir],1) //default weight is 1
-			applied_wind[wind_dir] = 0
+		if(neighbor_weight[possible_target])
+			neighbor_weight[possible_target] = applied_wind[wind_dir]
 		else
 			continue
 
