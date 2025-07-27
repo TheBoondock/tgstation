@@ -20,7 +20,7 @@
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
 
-	var/static/message_list = list("Beginning kick start reaction in 5...", "4", "3", "2", "1")
+	var/static/message_list = list("Kickstarting reaction in 5...", "4", "3", "2", "1")
 
 /obj/machinery/demon_core/Initialize(mapload)
 	. = ..()
@@ -30,6 +30,10 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(check_ignition))
+
+/obj/machinery/demon_core/Destroy(force)
+	. = ..()
+	UnregisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION)
 
 /obj/machinery/demon_core/process_atmos()
 	var/turf/open/our_turf = get_turf(src)
