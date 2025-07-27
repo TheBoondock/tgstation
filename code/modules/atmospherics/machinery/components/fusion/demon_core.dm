@@ -4,7 +4,7 @@
 /obj/machinery/demon_core
 	name = "Demon core"
 	desc = "fusion reactor core known for its instability and almost alive state"
-	icon = 'icons/obj/machines/atmospherics/demon_core.dmi'
+	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
 	icon_state = "stage_1"
 	use_power = NO_POWER_USE
 	anchored = TRUE
