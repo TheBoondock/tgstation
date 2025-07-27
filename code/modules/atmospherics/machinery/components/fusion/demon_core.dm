@@ -1,5 +1,3 @@
-
-
 // Fusion V8, this core is used to power open turf fusion reaction
 /obj/machinery/demon_core
 	name = "Demon core"
