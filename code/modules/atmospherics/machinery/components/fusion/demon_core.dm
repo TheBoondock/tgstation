@@ -6,6 +6,7 @@
 	icon_state = "stage_1"
 	use_power = NO_POWER_USE
 	anchored = TRUE
+	density = TRUE
 	/// What stages are we in, use in determining output gasses and heat as well as other effect.
 	var/stage = 0
 	/// The TTV inserted in the machine.
@@ -28,6 +29,7 @@
 	radio.keyslot = new radio_key
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
+	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(check_ignition))
 
 /obj/machinery/demon_core/process_atmos()
 	var/turf/open/our_turf = get_turf(src)
@@ -41,9 +43,37 @@
 		sleep(1 SECONDS)
 
 	inserted_bomb.toggle_valve(inserted_bomb.tank_one)
+
+/obj/machinery/demon_core/proc/check_ignition(atom/source, list/arguments)
+	SIGNAL_HANDLER
+
+	. = COMSIG_CANCEL_EXPLOSION
+
+	var/heavy = arguments[EXARG_KEY_DEV_RANGE]
+	var/medium = arguments[EXARG_KEY_HEAVY_RANGE]
+	var/light = arguments[EXARG_KEY_LIGHT_RANGE]
+	var/explosion_range = max(heavy, medium, light, 0)
+	var/required_range = 5
+	var/turf/location = get_turf(src)
+	var/result_message
+
+	var/cap_multiplier = SSmapping.level_trait(location.z, ZTRAIT_BOMBCAP_MULTIPLIER)
+	if(isnull(cap_multiplier))
+		cap_multiplier = 1
+	var/capped_heavy = min(GLOB.MAX_EX_DEVESTATION_RANGE * cap_multiplier, heavy)
+	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
+	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy, capped_medium)
+
+	if(explosion_range < required_range)
+		result_message = "Resultant detonation failed to produce enough implosive power to kickstart"
+		return
+
+	result_message = "Success. Resultant detonation has successfully kickstart a fusion reaction."
+
 	for(var/i = 1, i <= 20, i++)
 		fire_nuclear_particle()
 	stage = 1
+	return
 
 /obj/machinery/demon_core/interact(mob/user)
 	. = ..()
