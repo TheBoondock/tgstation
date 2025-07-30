@@ -261,8 +261,9 @@
 	Exadv1: I know this isn't how it's going to work, but this was just to check
 	it explodes properly when it gets a signal (and it does).
 */
-/obj/item/transfer_valve/proc/toggle_valve(obj/item/tank/target, change_volume = TRUE)
-	playsound(src, 'sound/effects/valve_opening.ogg', 50)
+/obj/item/transfer_valve/proc/toggle_valve(obj/item/tank/target, change_volume = TRUE, loud_toggle = TRUE)
+	if(loud_toggle)
+		playsound(src, 'sound/effects/valve_opening.ogg', 50)
 	if(!valve_open && tank_one && tank_two)
 		var/turf/bombturf = get_turf(src)
 

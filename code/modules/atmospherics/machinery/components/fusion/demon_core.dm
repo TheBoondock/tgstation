@@ -3,8 +3,8 @@
 //8 reworks
 
 /obj/machinery/demon_core
-	name = "Demon core"
-	desc = "fusion reactor core known for its instability and almost alive state"
+	name = "demon core"
+	desc = "Fusion reactor core known for its instability and almost alive behaviour."
 	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
 	icon_state = "stage_1"
 	use_power = NO_POWER_USE
@@ -23,14 +23,22 @@
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
+	/// The requirements to go to stage 1
+	var/list/stage1_req
+	/// The requirements to go to stage 2
+	var/list/stage2_req
+	/// The requirements to go to stage 3
+	var/list/stage3_req
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
 
-	var/static/message_list = list("Kickstarting reaction in 5...", "4", "3", "2", "1")
+	var/static/message_list = list("Begining reactor sequence in...", "5", "4", "3", "2", "1")
 
 	var/failed_reason
 
-	var/kickstart_cd
+	STATIC_COOLDOWN_DECLARE(kickstart_cd)
+	STATIC_COOLDOWN_DECLARE(update_gas_info)
+
 
 /obj/machinery/demon_core/Initialize(mapload)
 	. = ..()
@@ -39,12 +47,21 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
-	COOLDOWN_DECLARE(kickstart_cd)
 
 /obj/machinery/demon_core/Destroy(force)
 	. = ..()
 	UnregisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION)
 	QDEL_NULL(radio)
+
+/obj/machinery/demon_core/interact(mob/user)
+	. = ..()
+	if(!check_area())
+		say(failed_reason)
+		return
+	/*else if(!check_atmos())
+		say("Atmospheric conditions not met![failed_reason]")
+		return*/
+	kick_start()
 
 /obj/machinery/demon_core/process_atmos()
 	// PART 1: PRELIMINARIES
@@ -55,23 +72,55 @@
 		return
 
 	var/datum/gas_mixture/our_mix = local_turf.return_air()
-	if(prob(40))
+	if(prob(10 * stage))
 		fire_nuclear_particle()
-	perform_stage_effect(our_mix)
+	switch(stage)
+		// Each stage releases its own more advance gasses as well as more heat
+		if(1)
+			our_mix.temperature += 100
+			our_mix.assert_gases(/datum/gas/oxygen, /datum/gas/plasma)
+			our_mix.gases[/datum/gas/oxygen][MOLES] += 50
+			our_mix.gases[/datum/gas/plasma][MOLES] += 50
+		if(2)
+			our_mix.temperature += 1000
+			our_mix.assert_gases(/datum/gas/bz, /datum/gas/tritium)
+			our_mix.gases[/datum/gas/bz][MOLES] += 50
+			our_mix.gases[/datum/gas/tritium][MOLES] += 50
+		if(3)
+			our_mix.temperature += 10000
+			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
+			our_mix.gases[/datum/gas/pluoxium][MOLES] += 50
+			our_mix.gases[/datum/gas/freon][MOLES] += 50
+		if(4)
+			our_mix.temperature += 1e5
+			our_mix.assert_gases(/datum/gas/halon, /datum/gas/proto_nitrate)
+			our_mix.gases[/datum/gas/halon][MOLES] += 50
+			our_mix.gases[/datum/gas/proto_nitrate][MOLES] += 50
+		if(5)
+			our_mix.temperature += 1e6
+			our_mix.assert_gases(/datum/gas/nitrium, /datum/gas/healium)
+			our_mix.gases[/datum/gas/nitrium][MOLES] += 50
+			our_mix.gases[/datum/gas/healium][MOLES] += 50
+		if(6)
+			our_mix.temperature += 1e7
+			our_mix.assert_gases(/datum/gas/hypernoblium, /datum/gas/zauker)
+			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
+			our_mix.gases[/datum/gas/zauker][MOLES] += 50
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/kick_start()
 	if(!COOLDOWN_FINISHED(src, kickstart_cd))
 		say("Core not ready to be kick started again.")
 		return
-	if(isnull(inserted_ttv) || isnull(inserted_tank) || isnull(inserted_grenade))
+	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
 		say("No explosive payload detected, canceling kick start.")
 		return
+	playsound(src, 'sound/machines/hypertorus/reactor_countdown.ogg', 80)
 	for(var/message_type in message_list)
 		radio.talk_into(src, message_type, emergency_channel, list(SPAN_COMMAND))
 		sleep(1 SECONDS)
 
-	inserted_ttv?.toggle_valve(inserted_ttv.tank_one)
+	inserted_ttv?.toggle_valve(inserted_ttv.tank_one, loud_toggle = FALSE)
 	inserted_grenade?.detonate()
 	inserted_tank?.ignite()
 	COOLDOWN_START(src, kickstart_cd, 2 MINUTES)
@@ -81,7 +130,6 @@
 /obj/machinery/demon_core/proc/ready_to_advance()
 	say("Fusion core stabilized, ready for higher fusion reaction. Awaiting kick start...")
 	SSair.stop_processing_machine(src)
-	eject_bomb()
 	return
 
 /obj/machinery/demon_core/proc/begin_fusion(atom/source, list/arguments)
@@ -105,24 +153,17 @@
 
 	for(var/i = 1, i <= 20, i++)
 		fire_nuclear_particle()
-	if(stage == 1)
+	if(stage >= 1)
 		for(var/turf/target_turf in view(4, src))
 			if(prob(40))
 				target_turf.Shake(duration = 0.1)
 	stage += 1
+	inserted_grenade = null
+	inserted_tank = null
+	inserted_ttv = null
 	SSair.start_processing_machine(src)
 	return
 
-/obj/machinery/demon_core/interact(mob/user)
-	. = ..()
-	if(!check_area())
-		say(failed_reason)
-		return
-	else if(!check_atmos())
-		say("Atmospheric conditions not met!")
-		say(failed_reason)
-		return
-	kick_start()
 
 /obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
 	if(inserted_ttv || inserted_tank || inserted_grenade)
@@ -156,17 +197,8 @@
 
 	return ..()
 
-/obj/machinery/demon_core/wrench_act(mob/living/user, obj/item/tool)
+/obj/machinery/demon_core/crowbar_act(mob/living/user, obj/item/tool)
 	. = ..()
-	if(inserted_ttv)
-		inserted_ttv.forceMove(drop_location())
-	else if(inserted_grenade)
-		inserted_grenade.forceMove(drop_location())
-	else if(inserted_tank)
-		inserted_tank.forceMove(drop_location())
-
-/// We dont allow incomplete valves to go in but do code in checks for incomplete valves. Just in case.
-/obj/machinery/demon_core/proc/eject_bomb()
 	if(inserted_ttv)
 		inserted_ttv.forceMove(drop_location())
 	else if(inserted_grenade)
@@ -185,23 +217,35 @@
 /// Check the atmospheric conditions around the core
 /obj/machinery/demon_core/proc/check_atmos()
 	var/turf/open/our_turf = get_turf(src)
-
-	if(our_turf.air.has_gas(/datum/gas/plasma, 100) && our_turf.air.temperature >= 1000)
-		failed_reason = "Need more mols of plasma and temperature exceeding 1000 Kelvin."
-		return TRUE
-	return FALSE
-
-/obj/machinery/demon_core/proc/perform_stage_effect(datum/gas_mixture/turf_mixture)
+	var/datum/gas_mixture/past_mix
+	var/datum/gas_mixture/present_mix = our_turf.air
+	// We check atmos conditions every 10 seconds for conditions that require changes over time
+	if(COOLDOWN_FINISHED(src, update_gas_info))
+		past_mix = present_mix.copy()
+		COOLDOWN_START(src, update_gas_info, 10 SECONDS)
+	// The conditions are for advancing into the next stage hence it will be refered to the next stage rather than current
 	switch(stage)
-		// stage 1 we simply heat up the gasses by 100 degrees and output oxygen + plasma
-		if(1)
-			turf_mixture.temperature += 100
-			turf_mixture.assert_gases(list(/datum/gas/oxygen, /datum/gas/plasma))
-			turf_mixture.gases[/datum/gas/oxygen][MOLES] += 50
-			turf_mixture.gases[/datum/gas/plasma][MOLES] += 50
-		if(2)
-			turf_mixture.temperature += 1000
-			turf_mixture.assert_gases(list(/datum/gas/bz, /datum/gas/tritium))
-			turf_mixture.gases[/datum/gas/bz][MOLES] += 50
-			turf_mixture.gases[/datum/gas/tritium][MOLES] += 50
+		if(0)// Stage 1: Test player ability to maintain high temperature gas
+			if(present_mix.has_gas(/datum/gas/plasma, 100) && present_mix.temperature >= 1000)
+				return TRUE
+			else
+				failed_reason = "Temperature and plasma below threshold."
+				return FALSE
+		if(1)// Stage 2: Test player ability to rapidly cool gases ~ cool 300 degrees kelvin in 10 seconds
+			var/delta_temp = present_mix.temperature - past_mix.temperature
+			if(delta_temp <= -300)
+				return TRUE
+			else
+				failed_reason = "Temperature change fell short of 30 Kelvin per second."
+				return FALSE
+		if(2)// Stage 3: Test player ability to apply PV = nRT
+			var/gas_pressure = present_mix.return_pressure()
+			var/total_mol = present_mix.total_moles()
+			if(gas_pressure >= 5000 && total_mol <= 50)
+				return TRUE
+			else
+				failed_reason = "Pressure too low or too many mols."
+				return FALSE
+
+
 
