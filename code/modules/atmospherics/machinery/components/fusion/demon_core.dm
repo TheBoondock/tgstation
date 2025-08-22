@@ -2,6 +2,10 @@
 //Fusion Rework Counter: Please increment this if you make a major overhaul to this system again.
 //8 reworks
 
+#define radius_1 8
+#define radius_2 20
+#define radius_3 30
+
 /obj/machinery/demon_core
 	name = "demon core"
 	desc = "Fusion reactor core known for its instability and almost alive behaviour."
@@ -19,6 +23,9 @@
 	var/obj/item/grenade/inserted_grenade
 	/// The single tank assembly bomb inserted into the core.
 	var/obj/item/tank/inserted_tank
+	/// list of payloads
+	var/list/payloads
+
 	///Our internal radio
 	var/obj/item/radio/radio
 	///The key our internal radio uses
@@ -29,12 +36,17 @@
 	var/list/stage2_req
 	/// The requirements to go to stage 3
 	var/list/stage3_req
+	/// The heat capacity of the core
+	var/core_heatcap
+	/// The temperature of the core
+	var/core_temperature
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
 
-	var/static/message_list = list("Begining reactor sequence in...", "5", "4", "3", "2", "1")
+	var/static/message_list = list("Begining kickstart sequence in...", "5", "4", "3", "2", "1")
 
 	var/failed_reason
+
 
 	STATIC_COOLDOWN_DECLARE(kickstart_cd)
 	STATIC_COOLDOWN_DECLARE(update_gas_info)
@@ -47,11 +59,13 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
+	payloads = list(inserted_ttv, inserted_tank, inserted_grenade)
 
 /obj/machinery/demon_core/Destroy(force)
 	. = ..()
 	UnregisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION)
 	QDEL_NULL(radio)
+	payloads = null
 
 /obj/machinery/demon_core/interact(mob/user)
 	. = ..()
@@ -70,8 +84,16 @@
 		return  //Yeah just stop.
 	if(isclosedturf(local_turf))
 		return
+	var/is_spaced = FALSE
+	if(isturf(src.loc))
+		local_turf = src.loc
+		for (var/turf/open/space/turf in ((local_turf.atmos_adjacent_turfs || list()) + local_turf))
+			is_spaced = TRUE
 
 	var/datum/gas_mixture/our_mix = local_turf.return_air()
+	var/pressure = our_mix.return_pressure()
+	if(pressure == 0 || is_spaced)
+		vacuum_exposed()
 	if(prob(10 * stage))
 		fire_nuclear_particle()
 	switch(stage)
@@ -83,9 +105,9 @@
 			our_mix.gases[/datum/gas/plasma][MOLES] += 50
 		if(2)
 			our_mix.temperature += 1000
-			our_mix.assert_gases(/datum/gas/bz, /datum/gas/tritium)
+			our_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
 			our_mix.gases[/datum/gas/bz][MOLES] += 50
-			our_mix.gases[/datum/gas/tritium][MOLES] += 50
+			our_mix.gases[/datum/gas/hydrogen][MOLES] += 50
 		if(3)
 			our_mix.temperature += 10000
 			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
@@ -107,6 +129,7 @@
 			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
 			our_mix.gases[/datum/gas/zauker][MOLES] += 50
 
+
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/kick_start()
 	if(!COOLDOWN_FINISHED(src, kickstart_cd))
@@ -115,9 +138,8 @@
 	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
 		say("No explosive payload detected, canceling kick start.")
 		return
-	playsound(src, 'sound/machines/hypertorus/reactor_countdown.ogg', 80)
 	for(var/message_type in message_list)
-		radio.talk_into(src, message_type, emergency_channel, list(SPAN_COMMAND))
+		radio.talk_into(src, message_type, FREQ_ENGINEERING, list(SPAN_ROBOT))
 		sleep(1 SECONDS)
 
 	inserted_ttv?.toggle_valve(inserted_ttv.tank_one, loud_toggle = FALSE)
@@ -153,45 +175,37 @@
 
 	for(var/i = 1, i <= 20, i++)
 		fire_nuclear_particle()
-	if(stage >= 1)
+	if(stage >= 2)// after level 3 we begin violently shaking the place to create a sense of dread
 		for(var/turf/target_turf in view(4, src))
 			if(prob(40))
-				target_turf.Shake(duration = 0.1)
+				target_turf.Shake(duration = 1, shake_interval = 0.2)
 	stage += 1
-	inserted_grenade = null
-	inserted_tank = null
-	inserted_ttv = null
+	update_appearance()
+	for(var/ref_payload in payloads)
+		ref_payload = null
 	SSair.start_processing_machine(src)
 	return
 
 
 /obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
-	if(inserted_ttv || inserted_tank || inserted_grenade)
-		say("Payload already occupied.")
-		return
-	if(istype(tool, /obj/item/transfer_valve))
-		var/obj/item/transfer_valve/valve = tool
-		if(!valve.ready())
-			say("[valve] is incomplete.")
-			return
+	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
+		if(istype(tool, /obj/item/transfer_valve))
+			var/obj/item/transfer_valve/valve = tool
+			if(!valve.ready())
+				say("[valve] is incomplete.")
+				return
+			inserted_ttv = tool
+		else if(istype(tool, /obj/item/grenade))
+			inserted_grenade = tool
+		else if(istype(tool, /obj/item/tank))
+			var/obj/item/tank/ref_tank = tool
+			if(!ref_tank.bomb_status)
+				say("Single tank bomb incomplete.")
+				return
+			inserted_tank = tool
 		if(!user.transferItemToLoc(tool, src))
 			to_chat(user, span_warning("[tool] is stuck to your hand."))
 			return
-		inserted_ttv = tool
-	else if(istype(tool, /obj/item/grenade))
-		if(!user.transferItemToLoc(tool, src))
-			to_chat(user, span_warning("[tool] is stuck to your hand."))
-			return
-		inserted_grenade = tool
-	else if(istype(tool, /obj/item/tank))
-		var/obj/item/tank/ref_tank = tool
-		if(!ref_tank.bomb_status)
-			say("Single tank bomb incomplete.")
-			return
-		if(!user.transferItemToLoc(tool, src))
-			to_chat(user, span_warning("[tool] is stuck to your hand."))
-			return
-		inserted_tank = tool
 
 	to_chat(user, span_notice("You insert [tool] into [src]"))
 
@@ -219,10 +233,10 @@
 	var/turf/open/our_turf = get_turf(src)
 	var/datum/gas_mixture/past_mix
 	var/datum/gas_mixture/present_mix = our_turf.air
-	// We check atmos conditions every 10 seconds for conditions that require changes over time
+	// We check atmos conditions every 2 seconds for conditions that require changes over time
 	if(COOLDOWN_FINISHED(src, update_gas_info))
 		past_mix = present_mix.copy()
-		COOLDOWN_START(src, update_gas_info, 10 SECONDS)
+		COOLDOWN_START(src, update_gas_info, 2 SECONDS)
 	// The conditions are for advancing into the next stage hence it will be refered to the next stage rather than current
 	switch(stage)
 		if(0)// Stage 1: Test player ability to maintain high temperature gas
@@ -231,9 +245,9 @@
 			else
 				failed_reason = "Temperature and plasma below threshold."
 				return FALSE
-		if(1)// Stage 2: Test player ability to rapidly cool gases ~ cool 300 degrees kelvin in 10 seconds
+		if(1)// Stage 2: Test player ability to rapidly cool gases ~ cool 30 degrees kelvin in 2 seconds
 			var/delta_temp = present_mix.temperature - past_mix.temperature
-			if(delta_temp <= -300)
+			if(delta_temp <= -30)
 				return TRUE
 			else
 				failed_reason = "Temperature change fell short of 30 Kelvin per second."
@@ -247,5 +261,22 @@
 				failed_reason = "Pressure too low or too many mols."
 				return FALSE
 
+/obj/machinery/demon_core/proc/vacuum_exposed()
+	switch(stage)
+		if(1)
+			core_temperature += 100
+		if(2)
+			core_temperature += 1000
+		if(3)
+			core_temperature += 10000
+		if(4)
+			core_temperature += 100000
+		if(5)
+			core_temperature += 1e6
+		if(6)
+			core_temperature += 1e7
 
+/obj/machinery/demon_core/update_appearance(updates)
+	. = ..()
+	icon_state = "stage_[stage]"
 
