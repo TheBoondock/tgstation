@@ -175,10 +175,13 @@
 
 	for(var/i = 1, i <= 20, i++)
 		fire_nuclear_particle()
-	if(stage >= 2)// after level 3 we begin violently shaking the place to create a sense of dread
+	if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
 		for(var/turf/target_turf in view(4, src))
 			if(prob(40))
 				target_turf.Shake(duration = 1, shake_interval = 0.2)
+	if(stage >= 2)// after level 2 we create shockwave
+		for(var/atom/movable/thing in view(5, src))
+			thing.throw_at()
 	stage += 1
 	update_appearance()
 	for(var/ref_payload in payloads)
@@ -240,7 +243,7 @@
 	// The conditions are for advancing into the next stage hence it will be refered to the next stage rather than current
 	switch(stage)
 		if(0)// Stage 1: Test player ability to maintain high temperature gas
-			if(present_mix.has_gas(/datum/gas/plasma, 100) && present_mix.temperature >= 1000)
+			if(present_mix.has_gas(/datum/gas/plasma, 500) && present_mix.temperature >= 1000)
 				return TRUE
 			else
 				failed_reason = "Temperature and plasma below threshold."
