@@ -164,6 +164,8 @@
 #define COMSIG_LIVING_MOB_BUMP "living_mob_bump"
 ///From base of mob/living/MobBump() (mob/living)
 #define COMSIG_LIVING_MOB_BUMPED "living_mob_bumped"
+/// From base of mob/living/Bump() once they swap place (mob/living/bumper, mob/living/swapper)
+#define COMSIG_LIVING_MOB_SWAPPED "living_mob_swapped"
 ///From base of mob/living/Bump() (turf/closed)
 #define COMSIG_LIVING_WALL_BUMP "living_wall_bump"
 ///From base of turf/closed/Exited() (turf/closed)

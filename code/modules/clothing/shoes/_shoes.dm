@@ -86,6 +86,7 @@
 
 /obj/item/clothing/shoes/equipped(mob/user, slot)
 	. = ..()
+	AddElement(/datum/element/shoe_stepping, user)
 	if(fastening_type != SHOES_SLIPON && tied == SHOES_UNTIED)
 		our_alert_ref = WEAKREF(user.throw_alert(ALERT_SHOES_KNOT, /atom/movable/screen/alert/shoes/untied))
 		RegisterSignal(src, COMSIG_SHOES_STEP_ACTION, PROC_REF(check_trip), override=TRUE)
@@ -103,6 +104,7 @@
 		user.clear_alert(ALERT_SHOES_KNOT)
 	if(offset && equipped_before_drop)
 		restore_offsets(user)
+	user.RemoveElement(/datum/element/shoe_stepping)
 	. = ..()
 
 /obj/item/clothing/shoes/update_clothes_damaged_state(damaged_state = CLOTHING_DAMAGED)

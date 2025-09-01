@@ -226,6 +226,7 @@
 				M.pass_flags &= ~PASSMOB
 
 			now_pushing = FALSE
+			SEND_SIGNAL(src, COMSIG_LIVING_MOB_SWAPPED, M)
 
 			if(!move_failed)
 				return TRUE
