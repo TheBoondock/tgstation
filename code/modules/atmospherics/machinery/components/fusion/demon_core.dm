@@ -96,121 +96,11 @@
 		vacuum_exposed()
 	if(prob(10 * stage))
 		fire_nuclear_particle()
-	if()
-	fusion_reaction(our_mix)
+	if(check_fusion_req())
+		fusion_reaction(our_mix)
+	else
+		fail_to_sustain()
 
-
-
-// Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
-/obj/machinery/demon_core/proc/kick_start()
-	if(!COOLDOWN_FINISHED(src, kickstart_cd))
-		say("Core not ready to be kick started again.")
-		return
-	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
-		say("No explosive payload detected, canceling kick start.")
-		return
-	for(var/message_type in message_list)
-		radio.talk_into(src, message_type, FREQ_ENGINEERING, list(SPAN_ROBOT))
-		sleep(1 SECONDS)
-
-	inserted_ttv?.toggle_valve(inserted_ttv.tank_one, loud_toggle = FALSE)
-	inserted_grenade?.detonate()
-	inserted_tank?.ignite()
-	COOLDOWN_START(src, kickstart_cd, 2 MINUTES)
-	addtimer(CALLBACK(src, PROC_REF(ready_to_advance)), 2 MINUTES)
-
-// Prepare our fusion core to advance to next stage/power level/fusion tier whatever you call it
-/obj/machinery/demon_core/proc/ready_to_advance()
-	say("Fusion core stabilized, ready for higher fusion reaction. Awaiting kick start...")
-	SSair.stop_processing_machine(src)
-	return
-
-/obj/machinery/demon_core/proc/begin_fusion(atom/source, list/arguments)
-	SIGNAL_HANDLER
-
-	. = COMSIG_CANCEL_EXPLOSION
-
-	var/heavy = arguments[EXARG_KEY_DEV_RANGE]
-	var/medium = arguments[EXARG_KEY_HEAVY_RANGE]
-	var/light = arguments[EXARG_KEY_LIGHT_RANGE]
-	var/explosion_range = max(heavy, medium, light, 0)
-	var/turf/location = get_turf(src)
-
-
-	var/cap_multiplier = SSmapping.level_trait(location.z, ZTRAIT_BOMBCAP_MULTIPLIER)
-	if(isnull(cap_multiplier))
-		cap_multiplier = 1
-	var/capped_heavy = min(GLOB.MAX_EX_DEVESTATION_RANGE * cap_multiplier, heavy)
-	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
-	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy, capped_medium)
-
-	for(var/i = 1, i <= 20, i++)
-		fire_nuclear_particle()
-	if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
-		for(var/turf/target_turf in view(4, src))
-			if(prob(40))
-				target_turf.Shake(duration = 1, shake_interval = 0.2)
-	if(stage >= 2)// after level 2 we create shockwave
-		for(var/atom/movable/thing in view(5, src))
-			thing.throw_at()
-	stage += 1
-	update_appearance()
-	for(var/ref_payload in payloads)
-		ref_payload = null
-	SSair.start_processing_machine(src)
-	return
-
-/// Handle the fusion reaction, consuming gas, releasing gas and heat
-/obj/machinery/demon_core/proc/fusion_reaction(datum/gas/tile_mix)
-switch(stage)
-		// Each stage releases its own more advance gasses as well as more heat
-		if(1) //Plasmic fusion, consuming plasma, oxygen
-			our_mix.temperature += 100
-			our_mix.assert_gases(/datum/gas/oxygen, /datum/gas/plasma)
-			our_mix.gases[/datum/gas/oxygen][MOLES] += 50
-			our_mix.gases[/datum/gas/plasma][MOLES] += 50
-		if(2)
-			our_mix.temperature += 1000
-			our_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
-			our_mix.gases[/datum/gas/bz][MOLES] += 50
-			our_mix.gases[/datum/gas/hydrogen][MOLES] += 50
-		if(3)
-			our_mix.temperature += 10000
-			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
-			our_mix.gases[/datum/gas/pluoxium][MOLES] += 50
-			our_mix.gases[/datum/gas/freon][MOLES] += 50
-		if(4)
-			our_mix.temperature += 1e5
-			our_mix.assert_gases(/datum/gas/halon, /datum/gas/proto_nitrate)
-			our_mix.gases[/datum/gas/halon][MOLES] += 50
-			our_mix.gases[/datum/gas/proto_nitrate][MOLES] += 50
-		if(5)
-			our_mix.temperature += 1e6
-			our_mix.assert_gases(/datum/gas/nitrium, /datum/gas/healium)
-			our_mix.gases[/datum/gas/nitrium][MOLES] += 50
-			our_mix.gases[/datum/gas/healium][MOLES] += 50
-		if(6)
-			our_mix.temperature += 1e7
-			our_mix.assert_gases(/datum/gas/hypernoblium, /datum/gas/zauker)
-			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
-			our_mix.gases[/datum/gas/zauker][MOLES] += 50
-
-/// Check the gas mix if it can sustain the fusion reaction
-/// Return true if it can, false if not
-/obj/machinery/demon_core/proc/check_fusion_req(datum/gas_mixture/tile_mix)
-	var/list/fuel_req
-	switch(stage)
-		if(1)
-			fuel_req = list(/datum/gas/plasma = 2000, /datum/gas/carbon_dioxide = 4000)
-		if(2)
-			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/bz = 3700, /datum/gas/freon)
-		if(3)
-			fuel_req = list(/datum/gas/proto_nitrate = 500, /datum/gas/pluoxium = 1500)
-
-	for(var/gas_type in fuel_req)
-		if(tile_mix.gases[gas_type][MOLES] < fuel_req[gas_type])// insufficient fuel
-			return FALSE
-	return TRUE
 
 /obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
 	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
@@ -285,6 +175,126 @@ switch(stage)
 			else
 				failed_reason = "Pressure too low or too many mols."
 				return FALSE
+
+
+// Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
+/obj/machinery/demon_core/proc/kick_start()
+	if(!COOLDOWN_FINISHED(src, kickstart_cd))
+		say("Core not ready to be kick started again.")
+		return
+	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
+		say("No explosive payload detected, canceling kick start.")
+		return
+	for(var/message_type in message_list)
+		radio.talk_into(src, message_type, FREQ_ENGINEERING, list(SPAN_ROBOT))
+		sleep(1 SECONDS)
+
+	inserted_ttv?.toggle_valve(inserted_ttv.tank_one, loud_toggle = FALSE)
+	inserted_grenade?.detonate()
+	inserted_tank?.ignite()
+
+/// Prepare our fusion core to advance to next stage/power level/fusion tier whatever you call it
+/obj/machinery/demon_core/proc/ready_to_advance()
+	if(src in SSair.atmos_machinery)
+		say("Fusion core stabilized, ready for higher fusion reaction. Awaiting kick start...")
+		SSair.stop_processing_machine(src)
+	return
+/// Stop processing since we can no longer sustain a reaction
+/obj/machinery/demon_core/proc/fail_to_sustain()
+	say("Insufficient heat and fuel to sustain fusion, core reaction halted!")
+	SSair.stop_processing_machine(src)
+	return
+
+/obj/machinery/demon_core/proc/begin_fusion(atom/source, list/arguments)
+	SIGNAL_HANDLER
+
+	. = COMSIG_CANCEL_EXPLOSION
+
+	var/heavy = arguments[EXARG_KEY_DEV_RANGE]
+	var/medium = arguments[EXARG_KEY_HEAVY_RANGE]
+	var/light = arguments[EXARG_KEY_LIGHT_RANGE]
+	var/explosion_range = max(heavy, medium, light, 0)
+	var/turf/location = get_turf(src)
+
+
+	var/cap_multiplier = SSmapping.level_trait(location.z, ZTRAIT_BOMBCAP_MULTIPLIER)
+	if(isnull(cap_multiplier))
+		cap_multiplier = 1
+	var/capped_heavy = min(GLOB.MAX_EX_DEVESTATION_RANGE * cap_multiplier, heavy)
+	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
+	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy, capped_medium)
+
+	for(var/i = 1, i <= 20, i++)
+		fire_nuclear_particle()
+	if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
+		for(var/turf/target_turf in view(4, src))
+			if(prob(40))
+				target_turf.Shake(duration = 1, shake_interval = 0.2)
+	if(stage >= 2)// after level 2 we create shockwave
+		for(var/atom/movable/thing in view(5, src))
+			thing.throw_at()
+	stage += 1
+	update_appearance()
+	for(var/ref_payload in payloads)
+		ref_payload = null
+	SSair.start_processing_machine(src)
+	COOLDOWN_START(src, kickstart_cd, 2 MINUTES)
+	addtimer(CALLBACK(src, PROC_REF(ready_to_advance)), 2 MINUTES)
+	return
+
+/// Check the gas mix if it can sustain the fusion reaction
+/// Return true if it can, false if not
+/obj/machinery/demon_core/proc/check_fusion_req(datum/gas_mixture/tile_mix)
+	var/list/fuel_req
+	var/conditions_passed = TRUE
+	switch(stage)
+		if(1)
+			fuel_req = list(/datum/gas/plasma = 2000, /datum/gas/carbon_dioxide = 4000)
+		if(2)
+			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/bz = 3700, /datum/gas/freon)
+		if(3)
+			fuel_req = list(/datum/gas/proto_nitrate = 500, /datum/gas/pluoxium = 1500)
+
+	for(var/gas_type in fuel_req)
+		if(tile_mix.gases[gas_type][MOLES] < fuel_req[gas_type])// insufficient fuel
+			conditions_passed = FALSE
+
+	return TRUE
+
+/// Handle the fusion reaction, consuming gas, releasing gas and heat
+/obj/machinery/demon_core/proc/fusion_reaction(datum/gas/tile_mix)
+switch(stage)
+		// Each stage releases its own more advance gasses as well as more heat
+		if(1) //Plasmic fusion, consuming plasma, oxygen
+			our_mix.temperature += 100
+			our_mix.assert_gases(/datum/gas/oxygen, /datum/gas/plasma)
+			our_mix.gases[/datum/gas/oxygen][MOLES] += 50
+			our_mix.gases[/datum/gas/plasma][MOLES] += 50
+		if(2)
+			our_mix.temperature += 1000
+			our_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
+			our_mix.gases[/datum/gas/bz][MOLES] += 50
+			our_mix.gases[/datum/gas/hydrogen][MOLES] += 50
+		if(3)
+			our_mix.temperature += 10000
+			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
+			our_mix.gases[/datum/gas/pluoxium][MOLES] += 50
+			our_mix.gases[/datum/gas/freon][MOLES] += 50
+		if(4)
+			our_mix.temperature += 1e5
+			our_mix.assert_gases(/datum/gas/halon, /datum/gas/proto_nitrate)
+			our_mix.gases[/datum/gas/halon][MOLES] += 50
+			our_mix.gases[/datum/gas/proto_nitrate][MOLES] += 50
+		if(5)
+			our_mix.temperature += 1e6
+			our_mix.assert_gases(/datum/gas/nitrium, /datum/gas/healium)
+			our_mix.gases[/datum/gas/nitrium][MOLES] += 50
+			our_mix.gases[/datum/gas/healium][MOLES] += 50
+		if(6)
+			our_mix.temperature += 1e7
+			our_mix.assert_gases(/datum/gas/hypernoblium, /datum/gas/zauker)
+			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
+			our_mix.gases[/datum/gas/zauker][MOLES] += 50
 
 /obj/machinery/demon_core/proc/vacuum_exposed()
 	switch(stage)
