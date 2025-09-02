@@ -25,14 +25,10 @@
 	var/obj/item/tank/inserted_tank
 	/// list of payloads
 	var/list/payloads
-
 	///Our internal radio
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
-
-	/// The heat capacity of the core
-	var/core_heatcap
 	/// The temperature of the core
 	var/core_temperature
 
@@ -83,6 +79,9 @@
 		local_turf = src.loc
 		for (var/turf/open/space/turf in ((local_turf.atmos_adjacent_turfs || list()) + local_turf))
 			is_spaced = TRUE
+	// core overheat
+	if(core_temperature >= 1e6)
+		melt_down()
 
 	var/datum/gas_mixture/our_mix = local_turf.return_air()
 	var/pressure = our_mix.return_pressure()
@@ -240,9 +239,9 @@
 		if(1)
 			fuel_req = list(/datum/gas/plasma = 2000, /datum/gas/carbon_dioxide = 4000)
 		if(2)
-			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/bz = 3700)
+			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/hydrogen = 3700)
 		if(3)
-			fuel_req = list(/datum/gas/pluoxium = 500, /datum/gas/healium = 800)
+			fuel_req = list(/datum/gas/pluoxium = 500, /datum/gas/freon = 800)
 
 	for(var/gas_type in fuel_req)
 		if(!(gas_type in cached_gas))
@@ -260,23 +259,28 @@
 	switch(stage)
 		// Each stage releases its own more advance gasses as well as more heat
 		if(1) //Plasmic fusion, consuming plasma, carbon dioxide: 1 P + 4 CO2 = 3 O2 + 2 BZ
-			tile_mix.temperature += 1000
+			tile_mix.temperature += 10000
 			cached_gases[/datum/gas/plasma][MOLES] -= 10
 			cached_gases[/datum/gas/carbon_dioxide][MOLES] -= 40
 			tile_mix.assert_gases(/datum/gas/oxygen, /datum/gas/bz)
 			cached_gases[/datum/gas/oxygen][MOLES] += 30
 			cached_gases[/datum/gas/bz][MOLES] += 20
-		if(2)
+		if(2)// Hydrogen fusion
 			tile_mix.temperature += 1e6
-			tile_mix.assert_gases(/datum/gas/proto_nitrate,)
+			tile_mix.assert_gases(/datum/gas/proto_nitrate, /datum/gas/healium)
 			cached_gases[/datum/gas/tritium][MOLES] -= 7
-			cached_gases[/datum/gas/bz][MOLES] -= 8
-		if(3)
+			cached_gases[/datum/gas/hydrogen][MOLES] -= 8
+			cached_gases[/datum/gas/proto_nitrate][MOLES] += 5
+			cached_gases[/datum/gas/healium][MOLES] += 10
+		if(3)// Heavy gas fusion
 			tile_mix.temperature += 1e10
-			tile_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
-			cached_gases[/datum/gas/pluoxium][MOLES] += 50
-			cached_gases[/datum/gas/freon][MOLES] += 50
+			tile_mix.assert_gases(/datum/gas/zauker, /datum/gas/halon)
+			cached_gases[/datum/gas/pluoxium][MOLES] -= 24
+			cached_gases[/datum/gas/freon][MOLES] -= 16
+			cached_gases[/datum/gas/zauker][MOLES] += 5
+			cached_gases[/datum/gas/halon][MOLES] += 36
 
+/// Heat up the core when exposed to a vacuum
 /obj/machinery/demon_core/proc/vacuum_exposed()
 	switch(stage)
 		if(1)
@@ -285,12 +289,9 @@
 			core_temperature += 1000
 		if(3)
 			core_temperature += 10000
-		if(4)
-			core_temperature += 100000
-		if(5)
-			core_temperature += 1e6
-		if(6)
-			core_temperature += 1e7
+
+/obj/machinery/demon_core/proc/melt_down()
+	radiation_pulse(src, 30, 0.5)
 
 /obj/machinery/demon_core/update_appearance(updates)
 	. = ..()
