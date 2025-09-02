@@ -154,26 +154,24 @@
 		COOLDOWN_START(src, update_gas_info, 2 SECONDS)
 	// The conditions are for advancing into the next stage hence it will be refered to the next stage rather than current
 	switch(stage)
-		if(0)// Stage 1: Test player ability to maintain high temperature gas
-			if(present_mix.has_gas(/datum/gas/plasma, 500) && present_mix.temperature >= 1000)
+		// Temperature prerequisites higher stae = higher temp
+		if(0)
+			if(present_mix.temperature >= 1000)
 				return TRUE
 			else
-				failed_reason = "Temperature and plasma below threshold."
+				failed_reason = "Temperature and plasma below 1'000 Kelvin."
 				return FALSE
-		if(1)// Stage 2: Test player ability to rapidly cool gases ~ cool 30 degrees kelvin in 2 seconds
-			var/delta_temp = present_mix.temperature - past_mix.temperature
-			if(delta_temp <= -30)
+		if(1)
+			if(present_mix.temperature >= 10000)
 				return TRUE
 			else
-				failed_reason = "Temperature change fell short of 30 Kelvin per second."
+				failed_reason = "Temperature below 10'000 Kelvin.______qdel_list_wrapper"
 				return FALSE
-		if(2)// Stage 3: Test player ability to apply PV = nRT
-			var/gas_pressure = present_mix.return_pressure()
-			var/total_mol = present_mix.total_moles()
-			if(gas_pressure >= 5000 && total_mol <= 50)
+		if(2)
+			if(present_mix.temperature >= 1e6)
 				return TRUE
 			else
-				failed_reason = "Pressure too low or too many mols."
+				failed_reason = "Temperature below 1e6 Kelvin."
 				return FALSE
 
 
@@ -263,38 +261,26 @@
 
 /// Handle the fusion reaction, consuming gas, releasing gas and heat
 /obj/machinery/demon_core/proc/fusion_reaction(datum/gas/tile_mix)
-switch(stage)
+	var/list/cached_gases = tile_mix.gasses
+	switch(stage)
 		// Each stage releases its own more advance gasses as well as more heat
-		if(1) //Plasmic fusion, consuming plasma, oxygen
-			our_mix.temperature += 100
-			our_mix.assert_gases(/datum/gas/oxygen, /datum/gas/plasma)
-			our_mix.gases[/datum/gas/oxygen][MOLES] += 50
-			our_mix.gases[/datum/gas/plasma][MOLES] += 50
+		if(1) //Plasmic fusion, consuming plasma, carbon dioxide: 1 P + 4 CO2 = 3 O2 + 2 BZ
+			tile_mix.temperature += 1000
+			cached_gases[/datum/gas/plasma][MOLES] -= 10
+			cached_gases[/datum/gas/carbon_dioxide][MOLES] -= 40
+			tile_mix.assert_gases(/datum/gas/plasma, /datum/gas/bz)
+			cached_gases[/datum/gas/oxygen][MOLES] += 30
+			cached_gases[/datum/gas/bz][MOLES] += 20
 		if(2)
-			our_mix.temperature += 1000
-			our_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
-			our_mix.gases[/datum/gas/bz][MOLES] += 50
-			our_mix.gases[/datum/gas/hydrogen][MOLES] += 50
+			tile_mix.temperature += 1e6
+			tile_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
+			cached_gases.gases[/datum/gas/bz][MOLES] += 50
+			cached_gases.gases[/datum/gas/hydrogen][MOLES] += 50
 		if(3)
-			our_mix.temperature += 10000
-			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
-			our_mix.gases[/datum/gas/pluoxium][MOLES] += 50
-			our_mix.gases[/datum/gas/freon][MOLES] += 50
-		if(4)
-			our_mix.temperature += 1e5
-			our_mix.assert_gases(/datum/gas/halon, /datum/gas/proto_nitrate)
-			our_mix.gases[/datum/gas/halon][MOLES] += 50
-			our_mix.gases[/datum/gas/proto_nitrate][MOLES] += 50
-		if(5)
-			our_mix.temperature += 1e6
-			our_mix.assert_gases(/datum/gas/nitrium, /datum/gas/healium)
-			our_mix.gases[/datum/gas/nitrium][MOLES] += 50
-			our_mix.gases[/datum/gas/healium][MOLES] += 50
-		if(6)
-			our_mix.temperature += 1e7
-			our_mix.assert_gases(/datum/gas/hypernoblium, /datum/gas/zauker)
-			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
-			our_mix.gases[/datum/gas/zauker][MOLES] += 50
+			tile_mix.temperature += 1e10
+			tile_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
+			cached_gases.gases[/datum/gas/pluoxium][MOLES] += 50
+			cached_gases.gases[/datum/gas/freon][MOLES] += 50
 
 /obj/machinery/demon_core/proc/vacuum_exposed()
 	switch(stage)
