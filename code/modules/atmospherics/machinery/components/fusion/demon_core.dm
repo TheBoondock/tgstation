@@ -30,12 +30,7 @@
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
-	/// The requirements to go to stage 1
-	var/list/stage1_req
-	/// The requirements to go to stage 2
-	var/list/stage2_req
-	/// The requirements to go to stage 3
-	var/list/stage3_req
+
 	/// The heat capacity of the core
 	var/core_heatcap
 	/// The temperature of the core
@@ -49,7 +44,6 @@
 
 
 	STATIC_COOLDOWN_DECLARE(kickstart_cd)
-	STATIC_COOLDOWN_DECLARE(update_gas_info)
 
 
 /obj/machinery/demon_core/Initialize(mapload)
@@ -72,7 +66,7 @@
 	if(!check_area())
 		say(failed_reason)
 		return
-	/*else if(!check_atmos())
+	/*else if(!check_stage_requirement())
 		say("Atmospheric conditions not met![failed_reason]")
 		return*/
 	kick_start()
@@ -143,15 +137,11 @@
 			return FALSE
 	return TRUE
 
-/// Check the atmospheric conditions around the core
-/obj/machinery/demon_core/proc/check_atmos()
+/// Check the atmospheric conditions around the core to advance a stage
+/obj/machinery/demon_core/proc/check_stage_requirement()
 	var/turf/open/our_turf = get_turf(src)
-	var/datum/gas_mixture/past_mix
 	var/datum/gas_mixture/present_mix = our_turf.air
-	// We check atmos conditions every 2 seconds for conditions that require changes over time
-	if(COOLDOWN_FINISHED(src, update_gas_info))
-		past_mix = present_mix.copy()
-		COOLDOWN_START(src, update_gas_info, 2 SECONDS)
+
 	// The conditions are for advancing into the next stage hence it will be refered to the next stage rather than current
 	switch(stage)
 		// Temperature prerequisites higher stae = higher temp
@@ -165,7 +155,7 @@
 			if(present_mix.temperature >= 10000)
 				return TRUE
 			else
-				failed_reason = "Temperature below 10'000 Kelvin.______qdel_list_wrapper"
+				failed_reason = "Temperature below 10'000 Kelvin."
 				return FALSE
 		if(2)
 			if(present_mix.temperature >= 1e6)
@@ -244,43 +234,48 @@
 /// Return true if it can, false if not
 /obj/machinery/demon_core/proc/check_fusion_req(datum/gas_mixture/tile_mix)
 	var/list/fuel_req
+	var/list/cached_gas = tile_mix.gases
 	var/conditions_passed = TRUE
 	switch(stage)
 		if(1)
 			fuel_req = list(/datum/gas/plasma = 2000, /datum/gas/carbon_dioxide = 4000)
 		if(2)
-			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/bz = 3700, /datum/gas/freon)
+			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/bz = 3700)
 		if(3)
-			fuel_req = list(/datum/gas/proto_nitrate = 500, /datum/gas/pluoxium = 1500)
+			fuel_req = list(/datum/gas/pluoxium = 500, /datum/gas/healium = 800)
 
 	for(var/gas_type in fuel_req)
-		if(tile_mix.gases[gas_type][MOLES] < fuel_req[gas_type])// insufficient fuel
+		if(!(gas_type in cached_gas))
+			conditions_passed = FALSE
+			break
+		else if(cached_gas[gas_type][MOLES] < fuel_req[gas_type])// insufficient fuel
 			conditions_passed = FALSE
 
-	return TRUE
+	return conditions_passed
 
 /// Handle the fusion reaction, consuming gas, releasing gas and heat
-/obj/machinery/demon_core/proc/fusion_reaction(datum/gas/tile_mix)
-	var/list/cached_gases = tile_mix.gasses
+/// Gas species and mols requirements are already checked in check_fusion_req so we sure they do exist
+/obj/machinery/demon_core/proc/fusion_reaction(datum/gas_mixture/tile_mix)
+	var/list/cached_gases = tile_mix.gases
 	switch(stage)
 		// Each stage releases its own more advance gasses as well as more heat
 		if(1) //Plasmic fusion, consuming plasma, carbon dioxide: 1 P + 4 CO2 = 3 O2 + 2 BZ
 			tile_mix.temperature += 1000
 			cached_gases[/datum/gas/plasma][MOLES] -= 10
 			cached_gases[/datum/gas/carbon_dioxide][MOLES] -= 40
-			tile_mix.assert_gases(/datum/gas/plasma, /datum/gas/bz)
+			tile_mix.assert_gases(/datum/gas/oxygen, /datum/gas/bz)
 			cached_gases[/datum/gas/oxygen][MOLES] += 30
 			cached_gases[/datum/gas/bz][MOLES] += 20
 		if(2)
 			tile_mix.temperature += 1e6
-			tile_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
-			cached_gases.gases[/datum/gas/bz][MOLES] += 50
-			cached_gases.gases[/datum/gas/hydrogen][MOLES] += 50
+			tile_mix.assert_gases(/datum/gas/proto_nitrate,)
+			cached_gases[/datum/gas/tritium][MOLES] -= 7
+			cached_gases[/datum/gas/bz][MOLES] -= 8
 		if(3)
 			tile_mix.temperature += 1e10
 			tile_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
-			cached_gases.gases[/datum/gas/pluoxium][MOLES] += 50
-			cached_gases.gases[/datum/gas/freon][MOLES] += 50
+			cached_gases[/datum/gas/pluoxium][MOLES] += 50
+			cached_gases[/datum/gas/freon][MOLES] += 50
 
 /obj/machinery/demon_core/proc/vacuum_exposed()
 	switch(stage)
