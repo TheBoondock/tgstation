@@ -96,38 +96,9 @@
 		vacuum_exposed()
 	if(prob(10 * stage))
 		fire_nuclear_particle()
-	switch(stage)
-		// Each stage releases its own more advance gasses as well as more heat
-		if(1)
-			our_mix.temperature += 100
-			our_mix.assert_gases(/datum/gas/oxygen, /datum/gas/plasma)
-			our_mix.gases[/datum/gas/oxygen][MOLES] += 50
-			our_mix.gases[/datum/gas/plasma][MOLES] += 50
-		if(2)
-			our_mix.temperature += 1000
-			our_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
-			our_mix.gases[/datum/gas/bz][MOLES] += 50
-			our_mix.gases[/datum/gas/hydrogen][MOLES] += 50
-		if(3)
-			our_mix.temperature += 10000
-			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
-			our_mix.gases[/datum/gas/pluoxium][MOLES] += 50
-			our_mix.gases[/datum/gas/freon][MOLES] += 50
-		if(4)
-			our_mix.temperature += 1e5
-			our_mix.assert_gases(/datum/gas/halon, /datum/gas/proto_nitrate)
-			our_mix.gases[/datum/gas/halon][MOLES] += 50
-			our_mix.gases[/datum/gas/proto_nitrate][MOLES] += 50
-		if(5)
-			our_mix.temperature += 1e6
-			our_mix.assert_gases(/datum/gas/nitrium, /datum/gas/healium)
-			our_mix.gases[/datum/gas/nitrium][MOLES] += 50
-			our_mix.gases[/datum/gas/healium][MOLES] += 50
-		if(6)
-			our_mix.temperature += 1e7
-			our_mix.assert_gases(/datum/gas/hypernoblium, /datum/gas/zauker)
-			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
-			our_mix.gases[/datum/gas/zauker][MOLES] += 50
+	if()
+	fusion_reaction(our_mix)
+
 
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
@@ -189,6 +160,57 @@
 	SSair.start_processing_machine(src)
 	return
 
+/// Handle the fusion reaction, consuming gas, releasing gas and heat
+/obj/machinery/demon_core/proc/fusion_reaction(datum/gas/tile_mix)
+switch(stage)
+		// Each stage releases its own more advance gasses as well as more heat
+		if(1) //Plasmic fusion, consuming plasma, oxygen
+			our_mix.temperature += 100
+			our_mix.assert_gases(/datum/gas/oxygen, /datum/gas/plasma)
+			our_mix.gases[/datum/gas/oxygen][MOLES] += 50
+			our_mix.gases[/datum/gas/plasma][MOLES] += 50
+		if(2)
+			our_mix.temperature += 1000
+			our_mix.assert_gases(/datum/gas/bz, /datum/gas/hydrogen)
+			our_mix.gases[/datum/gas/bz][MOLES] += 50
+			our_mix.gases[/datum/gas/hydrogen][MOLES] += 50
+		if(3)
+			our_mix.temperature += 10000
+			our_mix.assert_gases(/datum/gas/pluoxium, /datum/gas/freon)
+			our_mix.gases[/datum/gas/pluoxium][MOLES] += 50
+			our_mix.gases[/datum/gas/freon][MOLES] += 50
+		if(4)
+			our_mix.temperature += 1e5
+			our_mix.assert_gases(/datum/gas/halon, /datum/gas/proto_nitrate)
+			our_mix.gases[/datum/gas/halon][MOLES] += 50
+			our_mix.gases[/datum/gas/proto_nitrate][MOLES] += 50
+		if(5)
+			our_mix.temperature += 1e6
+			our_mix.assert_gases(/datum/gas/nitrium, /datum/gas/healium)
+			our_mix.gases[/datum/gas/nitrium][MOLES] += 50
+			our_mix.gases[/datum/gas/healium][MOLES] += 50
+		if(6)
+			our_mix.temperature += 1e7
+			our_mix.assert_gases(/datum/gas/hypernoblium, /datum/gas/zauker)
+			our_mix.gases[/datum/gas/hypernoblium][MOLES] += 50
+			our_mix.gases[/datum/gas/zauker][MOLES] += 50
+
+/// Check the gas mix if it can sustain the fusion reaction
+/// Return true if it can, false if not
+/obj/machinery/demon_core/proc/check_fusion_req(datum/gas_mixture/tile_mix)
+	var/list/fuel_req
+	switch(stage)
+		if(1)
+			fuel_req = list(/datum/gas/plasma = 2000, /datum/gas/carbon_dioxide = 4000)
+		if(2)
+			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/bz = 3700, /datum/gas/freon)
+		if(3)
+			fuel_req = list(/datum/gas/proto_nitrate = 500, /datum/gas/pluoxium = 1500)
+
+	for(var/gas_type in fuel_req)
+		if(tile_mix.gases[gas_type][MOLES] < fuel_req[gas_type])// insufficient fuel
+			return FALSE
+	return TRUE
 
 /obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
 	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
