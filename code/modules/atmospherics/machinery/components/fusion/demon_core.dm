@@ -219,7 +219,9 @@
 				target_turf.Shake(duration = 1, shake_interval = 0.2)
 	if(stage >= 2)// after level 2 we create shockwave
 		for(var/atom/movable/thing in view(5, src))
-			thing.throw_at()
+			var/src_target_dir = get_dir(src, thing)
+			var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
+			thing.throw_at(target_turf, 2, 2)
 	stage += 1
 	update_appearance()
 	for(var/ref_payload in payloads)
