@@ -395,3 +395,13 @@
 	tank_two = new /obj/item/tank/internals/oxygen (src)
 
 	update_appearance()
+
+/obj/item/transfer_valve/maxcap_test/Initialize(mapload)
+	. = ..()
+	tank_one = new /obj/item/tank/internals/plasma (src)
+	tank_two = new /obj/item/tank/internals/oxygen (src)
+
+	tank_one.air_contents.set_temperature(1000)
+	tank_two.air_contents.set_temperature(80)
+
+	update_appearance()

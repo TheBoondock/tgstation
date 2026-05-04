@@ -29,8 +29,10 @@
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
-	/// The temperature of the core
-	var/core_temperature
+	///internal gas mix of the core
+	var/datum/gas_mixture/internal_mix
+	///internal volume
+	var/volume = CELL_VOLUME
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
 
@@ -49,7 +51,11 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
+
 	payloads = list(inserted_ttv, inserted_tank, inserted_grenade)
+	internal_mix = new(volume)
+	internal_mix.set_gas(/datum/gas/plasma, 2000)
+	internal_mix.set_gas(/datum/gas/oxygen, 2000)
 
 /obj/machinery/demon_core/Destroy(force)
 	. = ..()
@@ -57,21 +63,11 @@
 	QDEL_NULL(radio)
 	payloads = null
 
-/obj/machinery/demon_core/interact(mob/user)
-	. = ..()
-	if(!check_area())
-		say(failed_reason)
-		return
-	/*else if(!check_stage_requirement())
-		say("Atmospheric conditions not met![failed_reason]")
-		return*/
-	kick_start()
-
 /obj/machinery/demon_core/process_atmos()
 	// PART 1: PRELIMINARIES
 	var/turf/local_turf = loc
 	if(!istype(local_turf))//We are in a crate or somewhere that isn't turf, if we return to turf resume processing but for now.
-		return  //Yeah just stop.
+		return
 	if(isclosedturf(local_turf))
 		return
 	var/is_spaced = FALSE
@@ -79,14 +75,11 @@
 		local_turf = src.loc
 		for (var/turf/open/space/turf in ((local_turf.atmos_adjacent_turfs || list()) + local_turf))
 			is_spaced = TRUE
-	// core overheat
-	if(core_temperature >= 1e6)
-		melt_down()
 
 	var/datum/gas_mixture/our_mix = local_turf.return_air()
-	var/pressure = our_mix.return_pressure()
-	if(pressure == 0 || is_spaced)
-		vacuum_exposed()
+	for(var/turf/open/target_turf in view(1, loc))
+		var/datum/gas_mixture/target_mix = target_turf.return_air()
+		suck_gas(target_mix)
 	if(prob(10 * stage))
 		fire_nuclear_particle()
 	if(check_fusion_req())
@@ -94,43 +87,9 @@
 	else
 		fail_to_sustain()
 
-
-/obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
-	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
-		if(istype(tool, /obj/item/transfer_valve))
-			var/obj/item/transfer_valve/valve = tool
-			if(!valve.ready())
-				say("[valve] is incomplete.")
-				return
-			inserted_ttv = tool
-		else if(istype(tool, /obj/item/grenade))
-			inserted_grenade = tool
-		else if(istype(tool, /obj/item/tank))
-			var/obj/item/tank/ref_tank = tool
-			if(!ref_tank.bomb_status)
-				say("Single tank bomb incomplete.")
-				return
-			inserted_tank = tool
-		if(!user.transferItemToLoc(tool, src))
-			to_chat(user, span_warning("[tool] is stuck to your hand."))
-			return
-
-	to_chat(user, span_notice("You insert [tool] into [src]"))
-
-	return ..()
-
-/obj/machinery/demon_core/crowbar_act(mob/living/user, obj/item/tool)
-	. = ..()
-	if(inserted_ttv)
-		inserted_ttv.forceMove(drop_location())
-	else if(inserted_grenade)
-		inserted_grenade.forceMove(drop_location())
-	else if(inserted_tank)
-		inserted_tank.forceMove(drop_location())
-
 /// Check the area surrounding the core to make sure its open and its clear from disturbances
 /obj/machinery/demon_core/proc/check_area()
-	for(var/turf/ref_turf in view(3, src))
+	for(var/turf/ref_turf in view(2, src))
 		if(istype(ref_turf, /turf/closed))
 			failed_reason = "Reaction area obstructed! Ensured a clear 3 by 3 area to start fusion."
 			return FALSE
@@ -162,7 +121,6 @@
 			else
 				failed_reason = "Temperature below 1e6 Kelvin."
 				return FALSE
-
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/kick_start()
@@ -213,15 +171,7 @@
 
 	for(var/i = 1, i <= 20, i++)
 		fire_nuclear_particle()
-	if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
-		for(var/turf/target_turf in view(4, src))
-			if(prob(40))
-				target_turf.Shake(duration = 1, shake_interval = 0.2)
-	if(stage >= 2)// after level 2 we create shockwave
-		for(var/atom/movable/thing in view(5, src))
-			var/src_target_dir = get_dir(src, thing)
-			var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
-			thing.throw_at(target_turf, 2, 2)
+
 	stage += 1
 	update_appearance()
 	for(var/ref_payload in payloads)
@@ -282,20 +232,75 @@
 			cached_gases[/datum/gas/zauker][MOLES] += 5
 			cached_gases[/datum/gas/halon][MOLES] += 36
 
-/// Heat up the core when exposed to a vacuum
-/obj/machinery/demon_core/proc/vacuum_exposed()
-	switch(stage)
-		if(1)
-			core_temperature += 100
-		if(2)
-			core_temperature += 1000
-		if(3)
-			core_temperature += 10000
+/obj/machinery/demon_core/proc/begin_emission()
+	//prepare the gases to eject and directions
+	var/chosen_dir = pick(GLOB.alldirs)
+	var/datum/gas_mixture/removed = internal_mix.remove_ratio(0.8)
+	var/list/cached_gas = removed.gases
+	var/turf/starting_turf = loc
+	var/list/jet_line = list(starting_turf)
 
-/obj/machinery/demon_core/proc/melt_down()
-	radiation_pulse(src, 30, 0.5)
+	//var/turf/destination = get_edge_target_turf(starting_turf, chosen_dir)
+
+	/*var/obj/projectile/plasma_ball/mass_ejected = new /obj/projectile/plasma_ball(starting_turf)
+	mass_ejected.aim_projectile(destination, src)
+	mass_ejected.gas_to_eject = internal_mix.remove_ratio(0.5) // half of our internal mix goes out
+	*/
+	for(var/turf/ref in jet_line)
+		if(jet_line.len <= 4)
+			break
+		if(isclosedturf(ref))
+			SSexplosions.high_mov_atom += ref
+			break
+		else if(isopenturf(ref))
+			jet_line += ref
+			var/turf/open/env_turf = ref
+			var/datum/gas_mixture/env_gas = env_turf.return_air()
+			env_gas.set_temperature(5000)
+			for(var/gas_id in cached_gas)
+				env_gas.adjust_gas(gas_id, (cached_gas[gas_id][MOLES] * 0.3))// 30% of the 80% gas moles removed from internal mixed transfered
+			ref = get_step(ref, chosen_dir)
+
+
+
+
+	if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
+		for(var/turf/ref_turf in view(4, src))
+			if(prob(30))
+				ref_turf.Shake(duration = 1, shake_interval = 0.2)
+	if(stage >= 2)// after level 2 we create shockwave
+		for(var/atom/movable/thing in view(5, src))
+			var/src_target_dir = get_dir(src, thing)
+			var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
+			thing.throw_at(target_turf, 2, 2)
 
 /obj/machinery/demon_core/update_appearance(updates)
 	. = ..()
 	icon_state = "stage_[stage]"
 
+/obj/machinery/demon_core/proc/suck_gas(datum/gas_mixture/environment)
+	var/datum/gas_mixture/incoming = environment.remove_ratio(0.4) //40% of surrounding gas is taken up
+	internal_mix.merge(incoming)
+
+/obj/projectile/plasma_ball
+	name = "plasma ball"
+	desc = "Concentrated plasma matter, will evaporated almost anything."
+	icon_state = "solarflare"
+	damage_type = BURN
+	armor_flag = FIRE //We're operating off of anime remote slash logic here. As such, we can treat this as a hybrid burn/brute this way.
+	damage = 100 // Damage amps based on the number of flame_charges it was created off of.
+	speed = 2
+	light_range = 1
+	light_power = 1
+	light_color = LIGHT_COLOR_FIRE
+	var/datum/gas_mixture/gas_to_eject
+
+/obj/projectile/plasma_ball/Initialize(mapload)
+	. = ..()
+	RegisterSignal(src, )
+
+/obj/projectile/plasma_ball/on_hit(atom/target, blocked, pierce_hit)
+	. = ..()
+
+	if(isatom(target))
+		SSexplosions.high_mov_atom += target
