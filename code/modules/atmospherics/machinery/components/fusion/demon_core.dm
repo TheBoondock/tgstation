@@ -247,7 +247,7 @@
 	mass_ejected.gas_to_eject = internal_mix.remove_ratio(0.5) // half of our internal mix goes out
 	*/
 	for(var/turf/ref in jet_line)
-		if(jet_line.len <= 4)
+		if(jet_line.len >= 4)
 			break
 		if(isclosedturf(ref))
 			SSexplosions.high_mov_atom += ref
@@ -260,19 +260,20 @@
 			for(var/gas_id in cached_gas)
 				env_gas.adjust_gas(gas_id, (cached_gas[gas_id][MOLES] * 0.3))// 30% of the 80% gas moles removed from internal mixed transfered
 			ref = get_step(ref, chosen_dir)
+			env_turf.air_update_turf()
 
 
 
 
-	if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
-		for(var/turf/ref_turf in view(4, src))
-			if(prob(30))
-				ref_turf.Shake(duration = 1, shake_interval = 0.2)
-	if(stage >= 2)// after level 2 we create shockwave
-		for(var/atom/movable/thing in view(5, src))
-			var/src_target_dir = get_dir(src, thing)
-			var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
-			thing.throw_at(target_turf, 2, 2)
+	//if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
+	for(var/turf/ref_turf in view(4, src))
+		if(prob(30))
+			ref_turf.Shake(duration = 1, shake_interval = 0.2)
+	//if(stage >= 2)// after level 2 we create shockwave
+	for(var/atom/movable/thing in oview(4, loc))
+		var/src_target_dir = get_dir(src, thing)
+		var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
+		thing.throw_at(target_turf, 2, 2)
 
 /obj/machinery/demon_core/update_appearance(updates)
 	. = ..()
@@ -281,6 +282,52 @@
 /obj/machinery/demon_core/proc/suck_gas(datum/gas_mixture/environment)
 	var/datum/gas_mixture/incoming = environment.remove_ratio(0.4) //40% of surrounding gas is taken up
 	internal_mix.merge(incoming)
+
+//Contain all the player interaction code for the core
+
+/obj/machinery/demon_core/interact(mob/user)
+	. = ..()
+	if(!check_area())
+		say(failed_reason)
+		return
+	/*else if(!check_stage_requirement())
+		say("Atmospheric conditions not met![failed_reason]")
+		return*/
+	kick_start()
+
+/obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
+	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
+		if(istype(tool, /obj/item/transfer_valve))
+			var/obj/item/transfer_valve/valve = tool
+			if(!valve.ready())
+				say("[valve] is incomplete.")
+				return
+			inserted_ttv = tool
+		else if(istype(tool, /obj/item/grenade))
+			inserted_grenade = tool
+		else if(istype(tool, /obj/item/tank))
+			var/obj/item/tank/ref_tank = tool
+			if(!ref_tank.bomb_status)
+				say("Single tank bomb incomplete.")
+				return
+			inserted_tank = tool
+		if(!user.transferItemToLoc(tool, src))
+			to_chat(user, span_warning("[tool] is stuck to your hand."))
+			return
+
+	to_chat(user, span_notice("You insert [tool] into [src]"))
+
+	return ..()
+
+/obj/machinery/demon_core/crowbar_act(mob/living/user, obj/item/tool)
+	. = ..()
+	if(inserted_ttv)
+		inserted_ttv.forceMove(drop_location())
+	else if(inserted_grenade)
+		inserted_grenade.forceMove(drop_location())
+	else if(inserted_tank)
+		inserted_tank.forceMove(drop_location())
+
 
 /obj/projectile/plasma_ball
 	name = "plasma ball"
