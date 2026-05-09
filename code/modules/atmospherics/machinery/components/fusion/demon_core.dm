@@ -234,7 +234,7 @@
 
 /obj/machinery/demon_core/proc/begin_emission()
 	//prepare the gases to eject and directions
-	var/chosen_dir = pick(GLOB.alldirs)
+	var/chosen_dir = pick(GLOB.cardinals)
 	var/datum/gas_mixture/removed = internal_mix.remove_ratio(0.8)
 	var/list/cached_gas = removed.gases
 	var/turf/starting_turf = loc
@@ -261,6 +261,7 @@
 				env_gas.adjust_gas(gas_id, (cached_gas[gas_id][MOLES] * 0.3))// 30% of the 80% gas moles removed from internal mixed transfered
 			ref = get_step(ref, chosen_dir)
 			env_turf.air_update_turf()
+			env_turf.add_atom_colour(COLOR_BLUE, TEMPORARY_COLOUR_PRIORITY)
 
 
 
@@ -271,6 +272,8 @@
 			ref_turf.Shake(duration = 1, shake_interval = 0.2)
 	//if(stage >= 2)// after level 2 we create shockwave
 	for(var/atom/movable/thing in oview(4, loc))
+		if(thing.anchored)
+			continue
 		var/src_target_dir = get_dir(src, thing)
 		var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
 		thing.throw_at(target_turf, 2, 2)
