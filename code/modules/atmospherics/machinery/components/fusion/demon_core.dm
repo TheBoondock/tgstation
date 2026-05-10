@@ -8,7 +8,7 @@
 
 /obj/machinery/demon_core
 	name = "demon core"
-	desc = "Fusion reactor core known for its instability and almost alive behaviour."
+	desc = "Fusion reactor core known for its instability and almost magical behaviour."
 	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
 	icon_state = "stage_1"
 	use_power = NO_POWER_USE
@@ -79,7 +79,8 @@
 	var/datum/gas_mixture/our_mix = local_turf.return_air()
 	for(var/turf/open/target_turf in view(1, loc))
 		var/datum/gas_mixture/target_mix = target_turf.return_air()
-		suck_gas(target_mix)
+
+
 	if(prob(10 * stage))
 		fire_nuclear_particle()
 	if(check_fusion_req())
@@ -238,7 +239,8 @@
 	var/datum/gas_mixture/removed = internal_mix.remove_ratio(0.8)
 	var/list/cached_gas = removed.gases
 	var/turf/starting_turf = loc
-	var/list/jet_line = list(starting_turf)
+	var/list/jet_line = list(get_step(starting_turf, chosen_dir))
+
 
 	//var/turf/destination = get_edge_target_turf(starting_turf, chosen_dir)
 
@@ -249,38 +251,56 @@
 	for(var/turf/ref in jet_line)
 		if(jet_line.len >= 4)
 			break
-		if(isclosedturf(ref))
+		if(iswallturf(ref))
 			SSexplosions.high_mov_atom += ref
-			break
-		else if(isopenturf(ref))
-			jet_line += ref
-			var/turf/open/env_turf = ref
-			var/datum/gas_mixture/env_gas = env_turf.return_air()
-			env_gas.set_temperature(5000)
-			for(var/gas_id in cached_gas)
-				env_gas.adjust_gas(gas_id, (cached_gas[gas_id][MOLES] * 0.3))// 30% of the 80% gas moles removed from internal mixed transfered
-			ref = get_step(ref, chosen_dir)
-			env_turf.air_update_turf()
-			env_turf.add_atom_colour(COLOR_BLUE, TEMPORARY_COLOUR_PRIORITY)
 
+		jet_line += ref
+		var/turf/open/env_turf = ref
+		var/datum/gas_mixture/env_gas = env_turf.return_air()
+		env_gas.set_temperature(5000)
+		for(var/gas_id in cached_gas)
+			env_gas.adjust_gas(gas_id, (cached_gas[gas_id][MOLES] * 0.3))// 30% of the 80% gas moles removed from internal mixed transfered
+		jet_line += get_step(ref, chosen_dir)
+		env_turf.air_update_turf()
+		env_turf.add_atom_colour(COLOR_BLUE, TEMPORARY_COLOUR_PRIORITY)
+	emission_effects()
 
-
-
-	//if(stage >= 1)// after level 1 we begin violently shaking the place to create a sense of dread
-	for(var/turf/ref_turf in view(4, src))
+// Impact and visual effects of an emision
+/obj/machinery/demon_core/proc/emission_effects()
+	for(var/turf/ref_turf in view(4, loc))
 		if(prob(30))
 			ref_turf.Shake(duration = 1, shake_interval = 0.2)
 	//if(stage >= 2)// after level 2 we create shockwave
-	for(var/atom/movable/thing in oview(4, loc))
+	for(var/obj/thing in oview(4, loc))
 		if(thing.anchored)
 			continue
 		var/src_target_dir = get_dir(src, thing)
 		var/turf/target_turf = get_ranged_target_turf(thing, src_target_dir, 2)
 		thing.throw_at(target_turf, 2, 2)
+	for(var/mob/too_close in oview(4, loc))
+		if(!too_close.mob_negates_gravity())
+			var/mob_dir = get_dir(src, too_close)
+			var/turf/target_turf = get_ranged_target_turf(too_close, mob_dir, 2)
+			too_close.throw_at(target_turf, 2, 2)
+	playsound(src, 'sound/effects/thump.ogg', 100)
 
 /obj/machinery/demon_core/update_appearance(updates)
 	. = ..()
-	icon_state = "stage_[stage]"
+	var/internal_temp = internal_mix.return_temperature()
+	if(internal_temp <= 1000)
+		icon_state = "stage_[1]"
+	if(internal_temp <= 5000)
+		icon_state = "stage_[2]"
+	if(internal_temp <= 10000)
+		icon_state = "stage_[3]"
+	if(internal_temp <= 25000)
+		icon_state = "stage_[4]"
+	if(internal_temp <= 50000)
+		icon_state = "stage_[5]"
+	if(internal_temp <= 1e6)
+		icon_state = "stage_[6]"
+
+
 
 /obj/machinery/demon_core/proc/suck_gas(datum/gas_mixture/environment)
 	var/datum/gas_mixture/incoming = environment.remove_ratio(0.4) //40% of surrounding gas is taken up
