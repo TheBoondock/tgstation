@@ -1,6 +1,14 @@
-import { BooleanLike } from 'common/react';
+import {
+  Box,
+  Button,
+  LabeledList,
+  NoticeBox,
+  Section,
+  Stack,
+} from 'tgui-core/components';
+import type { BooleanLike } from 'tgui-core/react';
+
 import { useBackend } from '../backend';
-import { Box, Button, LabeledList, NoticeBox, Section, Stack } from '../components';
 import { Window } from '../layouts';
 
 type Data = {
@@ -11,13 +19,14 @@ type Data = {
 
 type Wire = {
   color: string;
+  shownColor: string;
   cut: BooleanLike;
   attached: BooleanLike;
   wire: string;
 };
 
-export const Wires = (props, context) => {
-  const { data } = useBackend<Data>(context);
+export const Wires = (props) => {
+  const { data } = useBackend<Data>();
   const { proper_name, status = [], wires = [] } = data;
   const dynamicHeight = 150 + wires.length * 30 + (proper_name ? 30 : 0);
 
@@ -53,8 +62,8 @@ export const Wires = (props, context) => {
 };
 
 /** Returns a labeled list of wires */
-const WireMap = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
+const WireMap = (props) => {
+  const { act, data } = useBackend<Data>();
   const { wires } = data;
 
   return (
@@ -63,9 +72,9 @@ const WireMap = (props, context) => {
         <LabeledList.Item
           key={wire.color}
           className="candystripe"
-          label={wire.color}
-          labelColor={wire.color}
-          color={wire.color}
+          label={wire.shownColor}
+          labelColor={wire.shownColor.replace(' ', '')}
+          color={wire.shownColor.replace(' ', '')}
           buttons={
             <>
               <Button
@@ -93,7 +102,8 @@ const WireMap = (props, context) => {
                 }
               />
             </>
-          }>
+          }
+        >
           {!!wire.wire && <i>({wire.wire})</i>}
         </LabeledList.Item>
       ))}

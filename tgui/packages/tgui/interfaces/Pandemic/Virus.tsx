@@ -1,14 +1,22 @@
-import { capitalizeFirst, decodeHtmlEntities } from 'common/string';
 import { useBackend } from 'tgui/backend';
-import { Box, Input, LabeledList, Section, Stack, Tooltip } from 'tgui/components';
+import {
+  Box,
+  Input,
+  LabeledList,
+  Section,
+  Stack,
+  Tooltip,
+} from 'tgui-core/components';
+import { capitalizeFirst, decodeHtmlEntities } from 'tgui-core/string';
+
 import { getColor } from './helpers';
-import { Data } from './types';
+import type { Data } from './types';
 
 /**
  * Displays info about the virus. Child elements display
  * the virus's traits and descriptions.
  */
-export const VirusDisplay = (props, context) => {
+export const VirusDisplay = (props) => {
   const { virus } = props;
 
   return (
@@ -29,10 +37,10 @@ export const VirusDisplay = (props, context) => {
 };
 
 /** Displays the description, name and other info for the virus. */
-const Info = (props, context) => {
-  const { act } = useBackend<Data>(context);
+const Info = (props) => {
+  const { act } = useBackend<Data>();
   const {
-    virus: { agent, can_rename, cure, description, index, name, spread },
+    virus: { agent, can_rename, description, index, name, spread },
   } = props;
 
   return (
@@ -42,7 +50,7 @@ const Info = (props, context) => {
           <Input
             placeholder="Input a name"
             value={name === 'Unknown' ? '' : name}
-            onChange={(_, value) =>
+            onBlur={(value) =>
               act('rename_disease', {
                 index: index,
                 name: value,
@@ -58,7 +66,6 @@ const Info = (props, context) => {
         {capitalizeFirst(agent)}
       </LabeledList.Item>
       <LabeledList.Item label="Spread">{spread}</LabeledList.Item>
-      <LabeledList.Item label="Possible Cure">{cure}</LabeledList.Item>
     </LabeledList>
   );
 };
@@ -68,15 +75,15 @@ const Info = (props, context) => {
  * with object.keys but you would need a helper function for the tooltips.
  * I would rather hard code it here.
  */
-const Traits = (props, context) => {
+const Traits = (props) => {
   const {
-    virus: { resistance, stage_speed, stealth, transmission },
+    virus: { resistance, stage_speed, stealth, transmission, severity },
   } = props;
 
   return (
     <Section title="Statistics">
       <LabeledList>
-        <Tooltip content="Decides the cure complexity.">
+        <Tooltip content="Protection from cures and natural recovery.">
           <LabeledList.Item color={getColor(resistance)} label="Resistance">
             {resistance}
           </LabeledList.Item>
@@ -94,8 +101,17 @@ const Traits = (props, context) => {
         <Tooltip content="Decides the spread type.">
           <LabeledList.Item
             color={getColor(transmission)}
-            label="Transmissibility">
+            label="Transmissibility"
+          >
             {transmission}
+          </LabeledList.Item>
+        </Tooltip>
+        <Tooltip content="Overall danger posed by the disease.">
+          <LabeledList.Item
+            color={getColor(severity)}
+            label="Severity"
+          >
+            {severity}
           </LabeledList.Item>
         </Tooltip>
       </LabeledList>

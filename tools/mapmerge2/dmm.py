@@ -95,7 +95,7 @@ class DMM:
         # last-second handling of bogus keys to help prevent and fix broken maps
         self._ensure_free_keys(0)
         max_key = max_key_for(self.key_length)
-        bad_keys = {key: 0 for key in self.dictionary.keys() if key > max_key}
+        bad_keys = {key: 0 for key in self.dictionary.keys() if key >= max_key}
         if bad_keys:
             print(f"Warning: fixing {len(bad_keys)} overflowing keys")
             for k in bad_keys:
@@ -193,7 +193,6 @@ def parse_map_atom(atom):
     vars = {}
 
     in_string = False
-    in_name = False
     escaping = False
     current_name = ''
     current = ''

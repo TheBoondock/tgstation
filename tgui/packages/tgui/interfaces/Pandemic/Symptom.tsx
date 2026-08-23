@@ -1,12 +1,20 @@
-import { Collapsible, LabeledList, NoticeBox, Section, Stack, Tooltip } from 'tgui/components';
+import {
+  Collapsible,
+  LabeledList,
+  NoticeBox,
+  Section,
+  Stack,
+  Tooltip,
+} from 'tgui-core/components';
+
 import { getColor } from './helpers';
-import { Threshold } from './types';
+import type { Threshold } from './types';
 
 /**
  * Similar to the virus info display.
  * Returns info about symptoms as collapsibles.
  */
-export const SymptomDisplay = (props, context) => {
+export const SymptomDisplay = (props) => {
   const { symptoms = [] } = props;
   if (!symptoms?.length) {
     return <NoticeBox>No symptoms detected.</NoticeBox>;
@@ -36,9 +44,9 @@ export const SymptomDisplay = (props, context) => {
 };
 
 /** Displays threshold data */
-const Thresholds = (props, context) => {
+const Thresholds = (props) => {
   const { thresholds = [] } = props;
-  let convertedThresholds = Object.entries<Threshold>(thresholds);
+  const convertedThresholds = Object.entries<Threshold>(thresholds);
 
   return (
     <Section mt={1} title="Thresholds">
@@ -49,7 +57,7 @@ const Thresholds = (props, context) => {
           {convertedThresholds.map(([label, descr], index) => {
             return (
               <LabeledList.Item key={index} label={label}>
-                {descr}
+                {String(descr)}
               </LabeledList.Item>
             );
           })}
@@ -60,9 +68,9 @@ const Thresholds = (props, context) => {
 };
 
 /** Displays the numerical trait modifiers for a virus symptom */
-const Traits = (props, context) => {
+const Traits = (props) => {
   const {
-    symptom: { level, resistance, stage_speed, stealth, transmission },
+    symptom: { level, resistance, stage_speed, stealth, transmission, symptom_cure, cure_color},
   } = props;
 
   return (
@@ -73,7 +81,7 @@ const Traits = (props, context) => {
             {level}
           </LabeledList.Item>
         </Tooltip>
-        <Tooltip content="Decides the cure complexity.">
+        <Tooltip content="Protection from cures and natural recovery.">
           <LabeledList.Item color={getColor(resistance)} label="Resistance">
             {resistance}
           </LabeledList.Item>
@@ -91,6 +99,11 @@ const Traits = (props, context) => {
         <Tooltip content="Decides the spread type.">
           <LabeledList.Item color={getColor(transmission)} label="Transmission">
             {transmission}
+          </LabeledList.Item>
+        </Tooltip>
+        <Tooltip content="What reagent remedies this symptom.">
+          <LabeledList.Item color={cure_color} label="Cure">
+            {symptom_cure}
           </LabeledList.Item>
         </Tooltip>
       </LabeledList>

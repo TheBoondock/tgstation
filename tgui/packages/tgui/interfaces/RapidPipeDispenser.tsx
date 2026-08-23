@@ -1,24 +1,34 @@
-import { BooleanLike, classes } from 'common/react';
-import { multiline } from 'common/string';
-import { capitalizeAll } from 'common/string';
-import { useBackend, useLocalState } from '../backend';
-import { Box, Button, ColorBox, LabeledList, Section, Stack, Tabs, Table } from '../components';
+import { useState } from 'react';
+import {
+  Box,
+  Button,
+  ColorBox,
+  ImageButton,
+  LabeledList,
+  Section,
+  Stack,
+  StyleableSection,
+  Tabs,
+} from 'tgui-core/components';
+import type { BooleanLike } from 'tgui-core/react';
+import { capitalizeAll } from 'tgui-core/string';
+
+import { useBackend } from '../backend';
 import { Window } from '../layouts';
 
-const ROOT_CATEGORIES = ['Atmospherics', 'Disposals', 'Transit Tubes'];
+const ROOT_CATEGORIES = ['Atmospherics', 'Disposals', 'Transit Tubes'] as const;
 
 export const ICON_BY_CATEGORY_NAME = {
-  'Atmospherics': 'wrench',
-  'Disposals': 'trash-alt',
-  'Transit Tubes': 'bus',
-  'Pipes': 'grip-lines',
-  'Binary': 'arrows-left-right',
+  Atmospherics: 'wrench',
+  Binary: 'arrows-left-right',
+  Devices: 'microchip',
   'Disposal Pipes': 'grip-lines',
-  'Devices': 'microchip',
+  Disposals: 'trash-alt',
   'Heat Exchange': 'thermometer-half',
+  Pipes: 'grip-lines',
   'Station Equipment': 'microchip',
-  'Air Sensors': 'microchip',
-};
+  'Transit Tubes': 'bus',
+} as const;
 
 const TOOLS = [
   {
@@ -37,28 +47,13 @@ const TOOLS = [
     name: 'Reprogram',
     bitmask: 8,
   },
-];
+] as const;
 
 type DirectionsAllowed = {
+  east: BooleanLike;
   north: BooleanLike;
   south: BooleanLike;
-  east: BooleanLike;
   west: BooleanLike;
-};
-
-type Colors = {
-  green: string;
-  blue: string;
-  red: string;
-  orange: string;
-  cyan: string;
-  dark: string;
-  yellow: string;
-  brown: string;
-  pink: string;
-  purple: string;
-  violet: string;
-  omni: string;
 };
 
 type Category = {
@@ -67,38 +62,40 @@ type Category = {
 };
 
 type Recipe = {
-  pipe_name: string;
   pipe_index: number;
+  pipe_name: string;
   previews: Preview[];
 };
 
 type Preview = {
-  selected: BooleanLike;
-  dir: string;
   dir_name: string;
-  icon_state: string;
+  dir: string;
   flipped: BooleanLike;
+  icon_state: string;
+  selected: BooleanLike;
 };
 
 type Data = {
   // Dynamic
-  category: number;
-  piping_layer: number;
-  ducting_layer: number;
   categories: Category[];
-  selected_recipe: string;
-  selected_color: string;
-  selected_category: string;
-  mode: number;
+  category: number;
   init_directions: DirectionsAllowed;
+  mode: number;
+  multi_layer: BooleanLike;
+  pipe_layers: number;
+  selected_category: string;
+  selected_color: string;
+  selected_recipe: string;
   // Static
-  paint_colors: Colors;
+  max_pipe_layers: number;
+  paint_colors: Record<string, string>;
 };
 
-export const ColorItem = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
-  const { selected_color, paint_colors } = data;
+export function ColorItem(props) {
+  const { act, data } = useBackend<Data>();
+  const { selected_color, paint_colors = {} } = data;
   const colorNames = Object.keys(paint_colors);
+
   return (
     <LabeledList.Item label="Color">
       {colorNames.map((colorName) => (
@@ -107,7 +104,7 @@ export const ColorItem = (props, context) => {
           height="20px"
           width="20px"
           style={{
-            'border':
+            border:
               '3px solid ' +
               (colorName === selected_color ? '#20b142' : '#222'),
           }}
@@ -124,32 +121,35 @@ export const ColorItem = (props, context) => {
       </Box>
     </LabeledList.Item>
   );
-};
+}
 
-const ModeItem = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
+function ModeItem(props) {
+  const { act, data } = useBackend<Data>();
   const { mode } = data;
+
   return (
     <LabeledList.Item label="Modes">
       {TOOLS.map((tool) => (
         <Button.Checkbox
           key={tool.bitmask}
           checked={mode & tool.bitmask}
-          content={tool.name}
           onClick={() =>
             act('mode', {
               mode: tool.bitmask,
             })
           }
-        />
+        >
+          {tool.name}
+        </Button.Checkbox>
       ))}
     </LabeledList.Item>
   );
-};
+}
 
-const CategoryItem = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
+function CategoryItem(props) {
+  const { act, data } = useBackend<Data>();
   const { category: rootCategoryIndex } = data;
+
   return (
     <LabeledList.Item label="Category">
       {ROOT_CATEGORIES.map((categoryName, i) => (
@@ -158,17 +158,19 @@ const CategoryItem = (props, context) => {
           selected={rootCategoryIndex === i}
           icon={ICON_BY_CATEGORY_NAME[categoryName]}
           color="transparent"
-          onClick={() => act('category', { category: i })}>
+          onClick={() => act('category', { category: i })}
+        >
           {categoryName}
         </Button>
       ))}
     </LabeledList.Item>
   );
-};
+}
 
-const SelectionSection = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
+function SelectionSection(props) {
+  const { data } = useBackend<Data>();
   const { category: rootCategoryIndex } = data;
+
   return (
     <Section fill>
       <LabeledList>
@@ -179,120 +181,139 @@ const SelectionSection = (props, context) => {
       </LabeledList>
     </Section>
   );
-};
+}
 
-export const LayerSelect = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
-  const { piping_layer } = data;
+function layerToBitmask(layer: number) {
+  return 1 << layer;
+}
+
+function LayerSelect(props) {
+  const { act, data } = useBackend<Data>();
+  const { pipe_layers, multi_layer, max_pipe_layers = 1 } = data;
+
   return (
     <LabeledList.Item label="Layer">
-      {[1, 2, 3, 4, 5].map((layer) => (
+      {Array.from({ length: max_pipe_layers }).map((_, layer) => (
         <Button.Checkbox
           key={layer}
-          checked={layer === piping_layer}
-          content={layer}
-          onClick={() =>
-            act('piping_layer', {
-              piping_layer: layer,
-            })
+          checked={
+            multi_layer
+              ? pipe_layers & layerToBitmask(layer)
+              : layerToBitmask(layer) === pipe_layers
           }
-        />
+          onClick={() =>
+            act('pipe_layers', { pipe_layers: layerToBitmask(layer) })
+          }
+        >
+          {layer + 1}
+        </Button.Checkbox>
       ))}
+      <Button.Checkbox
+        key="multilayer"
+        checked={multi_layer}
+        tooltip="Build on multiple pipe layers simultaneously"
+        onClick={() => {
+          act('toggle_multi_layer');
+        }}
+      >
+        Multi
+      </Button.Checkbox>
     </LabeledList.Item>
   );
+}
+
+type RecipeRowProps = {
+  recipe: Recipe;
+  shownCategory: Category;
 };
 
-const PreviewSelect = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
+function RecipeRow(props: RecipeRowProps) {
+  const { act } = useBackend<Data>();
+  const { recipe, shownCategory } = props;
+
   return (
-    <Box>
-      {props.previews.map((preview) => (
-        <Button
-          ml={0}
-          key={preview.dir}
-          title={preview.dir_name}
-          selected={preview.selected}
-          style={{
-            width: '40px',
-            height: '40px',
-            padding: 0,
-          }}
-          onClick={() => {
-            act('pipe_type', {
-              pipe_type: props.pipe_type,
-              category: props.category,
-            });
-            act('setdir', {
-              dir: preview.dir,
-              flipped: preview.flipped,
-            });
-          }}>
-          <Box
-            className={classes([
-              'pipes32x32',
-              preview.dir + '-' + preview.icon_state,
-            ])}
-            style={{
-              transform: 'scale(1.5) translate(9.5%, 9.5%)',
-            }}
-          />
-        </Button>
-      ))}
-    </Box>
+    <StyleableSection
+      textStyle={{
+        color: 'var(--color-label)',
+        fontSize: '1em',
+        fontWeight: 'normal',
+        textAlign: 'right',
+      }}
+      title={recipe.pipe_name}
+      titleStyle={{
+        borderBottom: '1px solid var(--color-border)',
+        padding: 0,
+      }}
+    >
+      <Stack fill wrap>
+        {recipe.previews.map((preview) => (
+          <Stack.Item key={preview.dir}>
+            <ImageButton
+              asset={['pipes32x32', `${preview.dir}-${preview.icon_state}`]}
+              color="blue"
+              imageSize={58}
+              assetSize={30}
+              onClick={() => {
+                act('pipe_type', {
+                  pipe_type: recipe.pipe_index,
+                  category: shownCategory.cat_name,
+                });
+                act('setdir', {
+                  dir: preview.dir,
+                  flipped: preview.flipped,
+                });
+              }}
+              selected={preview.selected}
+              tooltip={preview.dir_name}
+              tooltipPosition="bottom"
+            />
+          </Stack.Item>
+        ))}
+      </Stack>
+    </StyleableSection>
   );
-};
+}
 
-const PipeTypeSection = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
-  const { categories = [], selected_category, selected_recipe } = data;
-  const [categoryName, setCategoryName] = useLocalState(
-    context,
-    'categoryName',
-    selected_category
-  );
+function PipeTypeSection(props) {
+  const { data } = useBackend<Data>();
+  const { categories = [], selected_category } = data;
+  const [categoryName, setCategoryName] = useState(selected_category);
+
   const shownCategory =
     categories.find((category) => category.cat_name === categoryName) ||
     categories[0];
+
   return (
-    <Section>
-      <Tabs>
+    <Stack fill vertical>
+      <Tabs mb={-1}>
         {categories.map((category, i) => (
           <Tabs.Tab
-            fluid
             key={category.cat_name}
             icon={ICON_BY_CATEGORY_NAME[category.cat_name]}
             selected={category.cat_name === shownCategory.cat_name}
-            onClick={() => setCategoryName(category.cat_name)}>
+            onClick={() => setCategoryName(category.cat_name)}
+          >
             {category.cat_name}
           </Tabs.Tab>
         ))}
       </Tabs>
-      <Table>
+      <Section fill scrollable>
         {shownCategory?.recipes.map((recipe) => (
-          <Table.Row
-            key={recipe.pipe_index}
-            style={{ 'border-bottom': '1px solid #333' }}>
-            <Table.Cell collapsing py="2px" pb="1px">
-              <PreviewSelect
-                previews={recipe.previews}
-                pipe_type={recipe.pipe_index}
-                category={shownCategory.cat_name}
-              />
-            </Table.Cell>
-            <Table.Cell />
-            <Table.Cell style={{ 'vertical-align': 'middle' }}>
-              {recipe.pipe_name}
-            </Table.Cell>
-          </Table.Row>
+          <RecipeRow
+            key={recipe.pipe_name}
+            recipe={recipe}
+            shownCategory={shownCategory}
+          />
         ))}
-      </Table>
-    </Section>
+      </Section>
+    </Stack>
   );
-};
+}
 
-export const SmartPipeBlockSection = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
-  const { init_directions = [] } = data;
+export function SmartPipeBlockSection(props) {
+  const { act, data } = useBackend<Data>();
+  const { init_directions } = data;
+
   return (
     <Section fill>
       <Stack vertical textAlign="center">
@@ -303,17 +324,16 @@ export const SmartPipeBlockSection = (props, context) => {
                 color="transparent"
                 icon="info"
                 tooltipPosition="right"
-                tooltip={multiline`
-                This is a panel for blocking certain connection
+                tooltip="This is a panel for blocking certain connection
                 directions for the smart pipes.
                 The button in the center resets to
-                default (all directions can connect)`}
+                default (all directions can connect)"
               />
             </Stack.Item>
             <Stack.Item>
               <Button
                 icon="arrow-up"
-                selected={init_directions['north']}
+                selected={init_directions.north}
                 onClick={() =>
                   act('init_dir_setting', {
                     dir_flag: 'north',
@@ -328,7 +348,7 @@ export const SmartPipeBlockSection = (props, context) => {
             <Stack.Item>
               <Button
                 icon="arrow-left"
-                selected={init_directions['west']}
+                selected={init_directions.west}
                 onClick={() =>
                   act('init_dir_setting', {
                     dir_flag: 'west',
@@ -342,7 +362,7 @@ export const SmartPipeBlockSection = (props, context) => {
             <Stack.Item>
               <Button
                 icon="arrow-right"
-                selected={init_directions['east']}
+                selected={init_directions.east}
                 onClick={() =>
                   act('init_dir_setting', {
                     dir_flag: 'east',
@@ -355,7 +375,7 @@ export const SmartPipeBlockSection = (props, context) => {
         <Stack.Item>
           <Button
             icon="arrow-down"
-            selected={init_directions['south']}
+            selected={init_directions.south}
             onClick={() =>
               act('init_dir_setting', {
                 dir_flag: 'south',
@@ -366,14 +386,15 @@ export const SmartPipeBlockSection = (props, context) => {
       </Stack>
     </Section>
   );
-};
+}
 
-export const RapidPipeDispenser = (props, context) => {
-  const { act, data } = useBackend<Data>(context);
+export function RapidPipeDispenser(props) {
+  const { data } = useBackend<Data>();
   const { category: rootCategoryIndex } = data;
+
   return (
     <Window width={550} height={580}>
-      <Window.Content scrollable>
+      <Window.Content>
         <Stack fill vertical>
           <Stack.Item>
             <Stack fill>
@@ -394,4 +415,4 @@ export const RapidPipeDispenser = (props, context) => {
       </Window.Content>
     </Window>
   );
-};
+}

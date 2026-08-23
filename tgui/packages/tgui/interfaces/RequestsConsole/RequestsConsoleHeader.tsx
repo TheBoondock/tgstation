@@ -1,9 +1,10 @@
-import { useBackend } from '../../backend';
-import { Button, NoticeBox, Stack } from '../../components';
-import { RequestsData, RequestPriority } from './types';
+import { Button, NoticeBox, Stack } from 'tgui-core/components';
 
-export const RequestsConsoleHeader = (props, context) => {
-  const { act, data } = useBackend<RequestsData>(context);
+import { useBackend } from '../../backend';
+import { RequestPriority, type RequestsData } from './types';
+
+export const RequestsConsoleHeader = (props) => {
+  const { act, data } = useBackend<RequestsData>();
   const { has_mail_send_error, new_message_priority } = data;
   return (
     <Stack.Item mb={1}>
@@ -14,14 +15,14 @@ export const RequestsConsoleHeader = (props, context) => {
   );
 };
 
-const EmergencyBox = (props, context) => {
-  const { act, data } = useBackend<RequestsData>(context);
+const EmergencyBox = (props) => {
+  const { act, data } = useBackend<RequestsData>();
   const { emergency } = data;
   return (
     <>
       {!!emergency && (
         <NoticeBox danger>
-          {emergency} has been dispatched to this location
+          {emergency} called! RETA may open doors in area to them.
         </NoticeBox>
       )}
       {!emergency && (
@@ -71,17 +72,17 @@ const EmergencyBox = (props, context) => {
   );
 };
 
-const ErrorNoticeBox = (props, context) => {
+const ErrorNoticeBox = (props) => {
   return (
     <NoticeBox danger>{'Error occured while sending a message!'}</NoticeBox>
   );
 };
 
-const MessageNoticeBox = (props, context) => {
-  const { data } = useBackend<RequestsData>(context);
+const MessageNoticeBox = (props) => {
+  const { data } = useBackend<RequestsData>();
   const { new_message_priority } = data;
   return (
-    <NoticeBox warning>
+    <NoticeBox>
       {'You have new unread '}
       {new_message_priority === RequestPriority.HIGH && 'PRIORITY '}
       {new_message_priority === RequestPriority.EXTREME && 'EXTREME PRIORITY '}
