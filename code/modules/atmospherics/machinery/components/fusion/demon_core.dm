@@ -61,29 +61,22 @@
 	payloads = null
 
 /obj/machinery/demon_core/process_atmos()
-	// PART 1: PRELIMINARIES
+	//loop through adjacent turfs  to react
 	var/turf/local_turf = loc
-	if(!istype(local_turf))//We are in a crate or somewhere that isn't turf, if we return to turf resume processing but for now.
-		return
-	if(isclosedturf(local_turf))
-		return
-	var/is_spaced = FALSE
-	if(isturf(src.loc))
-		local_turf = src.loc
-		for (var/turf/open/space/turf in ((local_turf.atmos_adjacent_turfs || list()) + local_turf))
-			is_spaced = TRUE
+	for(var/turf/adjacent_turf in local_turf.atmos_adjacent_turfs)
+		if(!istype(adjacent_turf))//We are in a crate or somewhere that isn't turf, if we return to turf resume processing but for now.
+			return
+		if(isclosedturf(adjacent_turf))
+			return
 
-	var/datum/gas_mixture/our_mix = local_turf.return_air()
-	for(var/turf/open/target_turf in view(1, loc))
-		var/datum/gas_mixture/target_mix = target_turf.return_air()
+		var/datum/gas_mixture/environment = adjacent_turf.return_air()
 
+		if(!environment)
+			return
 
-	if(prob(10 * stage))
-		fire_nuclear_particle()
-	if(check_fusion_req())
-		fusion_reaction(our_mix)
-	else
-		fail_to_sustain()
+		catalyze_reaction(environment)
+
+		air_update_turf(FALSE, FALSE)
 
 /obj/machinery/demon_core/update_appupdate_icon_stateearance(updates)
 	. = ..()
@@ -98,6 +91,8 @@
 			return FALSE
 	return TRUE
 
+/obj/machinery/demon_core/proc/catalyze_reaction(datum/gas_mixture/target_mix)
+	target_mix.fuse()
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/kick_start()
@@ -146,11 +141,6 @@
 	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
 	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy, capped_medium)
 
-	for(var/i = 1, i <= 20, i++)
-		fire_nuclear_particle()
-
-	stage += 1
-	update_appearance()
 	for(var/ref_payload in payloads)
 		ref_payload = null
 	SSair.start_processing_machine(src)
@@ -158,46 +148,7 @@
 	addtimer(CALLBACK(src, PROC_REF(ready_to_advance)), 2 MINUTES)
 	return
 
-/// Check the gas mix if it can sustain the fusion reaction
-/// Return true if it can, false if not
-/obj/machinery/demon_core/proc/check_fusion_req(datum/gas_mixture/tile_mix)
-	var/list/fuel_req
-	var/list/cached_gas = tile_mix.gases
-	var/conditions_passed = TRUE
-	switch(stage)
-		if(1)
-			fuel_req = list(/datum/gas/plasma = 2000, /datum/gas/carbon_dioxide = 4000)
-		if(2)
-			fuel_req = list(/datum/gas/tritium = 1500, /datum/gas/hydrogen = 3700)
-		if(3)
-			fuel_req = list(/datum/gas/pluoxium = 500, /datum/gas/freon = 800)
 
-	for(var/gas_type in fuel_req)
-		if(!(gas_type in cached_gas))
-			conditions_passed = FALSE
-			break
-		else if(cached_gas[gas_type][MOLES] < fuel_req[gas_type])// insufficient fuel
-			conditions_passed = FALSE
-
-	return conditions_passed
-
-
-	for(var/turf/ref in jet_line)
-		if(jet_line.len >= 4)
-			break
-		if(iswallturf(ref))
-			SSexplosions.high_mov_atom += ref
-
-		jet_line += ref
-		var/turf/open/env_turf = ref
-		var/datum/gas_mixture/env_gas = env_turf.return_air()
-		env_gas.set_temperature(5000)
-		for(var/gas_id in cached_gas)
-			env_gas.adjust_gas(gas_id, (cached_gas[gas_id][MOLES] * 0.3))// 30% of the 80% gas moles removed from internal mixed transfered
-		jet_line += get_step(ref, chosen_dir)
-		env_turf.air_update_turf()
-		env_turf.add_atom_colour(COLOR_BLUE, TEMPORARY_COLOUR_PRIORITY)
-	emission_effects()
 
 // Impact and visual effects of an emision
 /obj/machinery/demon_core/proc/emission_effects()
@@ -226,9 +177,6 @@
 	if(!check_area())
 		say(failed_reason)
 		return
-	/*else if(!check_stage_requirement())
-		say("Atmospheric conditions not met![failed_reason]")
-		return*/
 	kick_start()
 
 /obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)

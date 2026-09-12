@@ -26,13 +26,13 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
  */
 /datum/gas_reaction/fusion_reaction/proc/reaction_check(datum/gas_mixture/air_mixture)
 	var/temp = air_mixture.temperature
-	var/list/cached_gases = air_mixture.gases
+	var/list/cached_moles = air_mixture.moles
 	if((requirements["MIN_TEMP"] && temp < requirements["MIN_TEMP"]) || (requirements["MAX_TEMP"] && temp > requirements["MAX_TEMP"]))
 		return FALSE
 	for(var/id in requirements)
 		if (id == "MIN_TEMP" || id == "MAX_TEMP")
 			continue
-		if(!cached_gases[id] || cached_gases[id][MOLES] < requirements[id])
+		if(!cached_moles[id] || cached_moles[id] < requirements[id])
 			return FALSE
 	return TRUE
 
@@ -45,13 +45,13 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 		/datum/gas/hydrogen = MINIMUM_MOLE_COUNT,
 		MIN_TEMP = PLASMIC_FUSION_MIN
 	)
-factor = list(
-		/datum/gas/plasma = "1 mole of plasma get consumed",
-		/datum/gas/hydrogen = "1 mole of H gets produced",
-		/datum/gas/helium = "2 moles of He get produced",
-	)
+	factor = list(
+			/datum/gas/plasma = "1 mole of plasma get consumed",
+			/datum/gas/hydrogen = "1 mole of H gets produced",
+			/datum/gas/helium = "2 moles of He get produced",
+		)
 
-/datum/gas_reaction/electrolyzer/h2o_conversion/react(datum/gas_mixture/air_mixture)
+/datum/gas_reaction/fusion_reaction/plasma_fusion/react(datum/gas_mixture/air_mixture)
 
 	var/old_heat_capacity = air_mixture.heat_capacity()
 
