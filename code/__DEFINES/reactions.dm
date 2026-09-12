@@ -272,3 +272,7 @@
 // Electrolysis arguments:
 /// Supermatter power argument.
 #define ELECTROLYSIS_ARGUMENT_SUPERMATTER_POWER "electrolyzer_supermatter_power"
+
+// Fusion
+/// Plasmic fusion
+#define PLASMIC_FUSION_MIN 10000
