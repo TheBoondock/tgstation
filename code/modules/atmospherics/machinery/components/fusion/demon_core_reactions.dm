@@ -1,21 +1,22 @@
-GLOBAL_LIST_INIT(demon_core_reactions, electrolyzer_reactions_list())
+GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 
 /*
- * Global proc to build the electrolyzer reactions list
+ * Global proc to build the fusion reactions list
  */
-/proc/demon_core_reactions_list()
+/proc/fusion_reaction_list()
 	var/list/built_reaction_list = list()
-	for(var/reaction_path in subtypesof(/datum/electrolyzer_reaction))
-		var/datum/electrolyzer_reaction/reaction = new reaction_path()
+	for(var/reaction_path in subtypesof(/datum/fusion_reaction))
+		var/datum/fusion_reaction/reaction = new reaction_path()
 
-/datum/demon_core_reaction
-	var/list/requirements
-	var/name = "reaction"
-	var/id = "r"
-	var/desc = ""
-	var/list/factor
+/datum/gas_reaction/fusion_reaction
+	abstract_type = /datum/gas_reaction/fusion_reaction
 
-/datum/electrolyzer_reaction/proc/react(datum/gas_mixture/air_mixture)
+/datum/gas_reaction/fusion_reaction/New()
+	. = ..()
+	factor ||= list()
+	factor["Location"] ||= "Can only happen on tiles nearby a fusion core."
+
+/datum/gas_reaction/fusion_reaction/proc/react(datum/gas_mixture/air_mixture)
 	return
 
 /**
@@ -23,7 +24,7 @@ GLOBAL_LIST_INIT(demon_core_reactions, electrolyzer_reactions_list())
  * Args:
  * * air_mixture: The air mixture to check the requirements for.
  */
-/datum/demon_core_reaction/proc/reaction_check(datum/gas_mixture/air_mixture)
+/datum/gas_reaction/fusion_reaction/proc/reaction_check(datum/gas_mixture/air_mixture)
 	var/temp = air_mixture.temperature
 	var/list/cached_gases = air_mixture.gases
 	if((requirements["MIN_TEMP"] && temp < requirements["MIN_TEMP"]) || (requirements["MAX_TEMP"] && temp > requirements["MAX_TEMP"]))
@@ -35,18 +36,30 @@ GLOBAL_LIST_INIT(demon_core_reactions, electrolyzer_reactions_list())
 			return FALSE
 	return TRUE
 
-/datum/demon_core_reaction/plasmic_fusion
+/datum/gas_reaction/fusion_reaction/plasmic_fusion
 	name = "Plasmic fusion"
 	id = "plasmic_fusion"
-	desc = "Fusion of plasma, hydrogen and CO2 into heavier compounds"
+	desc = "Fusion of plasma and hydrogen into heavier compounds"
 	requirements = list(
 		/datum/gas/plasma = MINIMUM_MOLE_COUNT,
 		/datum/gas/hydrogen = MINIMUM_MOLE_COUNT,
-		/datum/gas/carbon_dioxide = MINIMUM_MOLE_COUNT,
+		MIN_TEMP = PLASMIC_FUSION_MIN
 	)
 factor = list(
-		/datum/gas/water_vapor = "2 moles of H2O get consumed",
-		/datum/gas/oxygen = "1 mole of O2 gets produced",
-		/datum/gas/hydrogen = "2 moles of H2 get produced",
-		"Location" = "Can only happen on turfs with an active Electrolyzer.",
+		/datum/gas/plasma = "1 mole of plasma get consumed",
+		/datum/gas/hydrogen = "1 mole of H gets produced",
+		/datum/gas/helium = "2 moles of He get produced",
 	)
+
+/datum/gas_reaction/electrolyzer/h2o_conversion/react(datum/gas_mixture/air_mixture)
+
+	var/old_heat_capacity = air_mixture.heat_capacity()
+
+	air_mixture.adjust_gas(/datum/gas/plasma, -1)
+	air_mixture.adjust_gas(/datum/gas/hydrogen, -1)
+	air_mixture.adjust_gas(/datum/gas/helium, 2)
+
+	var/new_heat_capacity = air_mixture.heat_capacity()
+	var/energy_released = 7.8e6
+	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
+		air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_released) / new_heat_capacity), TCMB)

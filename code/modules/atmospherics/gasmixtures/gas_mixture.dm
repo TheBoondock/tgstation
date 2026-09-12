@@ -756,6 +756,21 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 
 	garbage_collect()
 
+/**
+ * Calls for fusion_reaction reactions on the gas_mixture.
+ */
+/datum/gas_mixture/proc/fuse()
+	for(var/reaction in GLOB.fusion_reactions)
+		var/datum/gas_reaction/fusion_reaction/current_reaction = GLOB.fusion_reactions[reaction]
+
+		if(!current_reaction.reaction_check(air_mixture = src))
+			continue
+
+		current_reaction.react(air_mixture = src)
+
+	garbage_collect()
+
+
 /// Convert a gas mixture to a string (ie. "o2=22;n2=82;TEMP=180")
 /// Rounds all temperature and gases to 0.01 and skips any gases less than that amount
 /datum/gas_mixture/proc/to_string()

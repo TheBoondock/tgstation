@@ -29,10 +29,7 @@
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
-	///internal gas mix of the core
-	var/datum/gas_mixture/internal_mix
-	///internal volume
-	var/volume = CELL_VOLUME
+
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
 
@@ -53,9 +50,7 @@
 	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
 
 	payloads = list(inserted_ttv, inserted_tank, inserted_grenade)
-	internal_mix = new(volume)
-	internal_mix.set_gas(/datum/gas/plasma, 2000)
-	internal_mix.set_gas(/datum/gas/oxygen, 2000)
+
 
 /obj/machinery/demon_core/Destroy(force)
 	. = ..()
@@ -242,12 +237,6 @@
 	var/list/jet_line = list(get_step(starting_turf, chosen_dir))
 
 
-	//var/turf/destination = get_edge_target_turf(starting_turf, chosen_dir)
-
-	/*var/obj/projectile/plasma_ball/mass_ejected = new /obj/projectile/plasma_ball(starting_turf)
-	mass_ejected.aim_projectile(destination, src)
-	mass_ejected.gas_to_eject = internal_mix.remove_ratio(0.5) // half of our internal mix goes out
-	*/
 	for(var/turf/ref in jet_line)
 		if(jet_line.len >= 4)
 			break
@@ -301,11 +290,6 @@
 		icon_state = "stage_[6]"
 
 
-
-/obj/machinery/demon_core/proc/suck_gas(datum/gas_mixture/environment)
-	var/datum/gas_mixture/incoming = environment.remove_ratio(0.4) //40% of surrounding gas is taken up
-	internal_mix.merge(incoming)
-
 //Contain all the player interaction code for the core
 
 /obj/machinery/demon_core/interact(mob/user)
@@ -351,26 +335,3 @@
 	else if(inserted_tank)
 		inserted_tank.forceMove(drop_location())
 
-
-/obj/projectile/plasma_ball
-	name = "plasma ball"
-	desc = "Concentrated plasma matter, will evaporated almost anything."
-	icon_state = "solarflare"
-	damage_type = BURN
-	armor_flag = FIRE //We're operating off of anime remote slash logic here. As such, we can treat this as a hybrid burn/brute this way.
-	damage = 100 // Damage amps based on the number of flame_charges it was created off of.
-	speed = 2
-	light_range = 1
-	light_power = 1
-	light_color = LIGHT_COLOR_FIRE
-	var/datum/gas_mixture/gas_to_eject
-
-/obj/projectile/plasma_ball/Initialize(mapload)
-	. = ..()
-	RegisterSignal(src, )
-
-/obj/projectile/plasma_ball/on_hit(atom/target, blocked, pierce_hit)
-	. = ..()
-
-	if(isatom(target))
-		SSexplosions.high_mov_atom += target
