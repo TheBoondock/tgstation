@@ -50,3 +50,11 @@
 	. = ..()
 	do_chem_smoke(cloud_size, src, get_turf(src), list(/datum/reagent/nitrium_low_metabolization = 3, /datum/reagent/nitrium_high_metabolization = 2))
 	qdel(src)
+
+/obj/item/plasma_core
+	name = "Plasma core"
+	desc = "Plasma and nitrogen condensed into a core capable of reduction the normal requirements for fusion."
+	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
+	icon_state = "plasma_core"
+
+

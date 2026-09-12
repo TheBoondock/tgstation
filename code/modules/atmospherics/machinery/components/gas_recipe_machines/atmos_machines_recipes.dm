@@ -181,3 +181,12 @@ GLOBAL_LIST_INIT(gas_recipe_meta, gas_recipes_list())
 	energy_release = -45000
 	requirements = list(/datum/gas/nitrium = 150, /datum/gas/oxygen = 70, /datum/gas/bz = 50)
 	products = list(/obj/item/nitrium_crystal = 1)
+
+/datum/gas_recipe/crystallizer/plasma_core
+	id = "fusion_core_plasma"
+	name = "Plasma Core"
+	min_temp = 250
+	max_temp = 290
+	energy_release = 30000
+	requirements = list(/datum/gas/plasma = 500, /datum/gas/nitrogen = 250)
+	products = list(/obj/item/plasma_core = 1)

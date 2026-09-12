@@ -10,7 +10,7 @@
 	name = "demon core"
 	desc = "Fusion reactor core known for its instability and almost magical behaviour."
 	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
-	icon_state = "stage_1"
+	icon_state = "pedestal_empty"
 	use_power = NO_POWER_USE
 	anchored = TRUE
 	density = TRUE
@@ -29,6 +29,8 @@
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
+	///The inserted core
+	var/obj/item/core
 
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
@@ -83,6 +85,11 @@
 	else
 		fail_to_sustain()
 
+/obj/machinery/demon_core/update_appupdate_icon_stateearance(updates)
+	. = ..()
+	icon_state = "pedestal_[core]"
+	return ..()
+
 /// Check the area surrounding the core to make sure its open and its clear from disturbances
 /obj/machinery/demon_core/proc/check_area()
 	for(var/turf/ref_turf in view(2, src))
@@ -91,32 +98,6 @@
 			return FALSE
 	return TRUE
 
-/// Check the atmospheric conditions around the core to advance a stage
-/obj/machinery/demon_core/proc/check_stage_requirement()
-	var/turf/open/our_turf = get_turf(src)
-	var/datum/gas_mixture/present_mix = our_turf.air
-
-	// The conditions are for advancing into the next stage hence it will be refered to the next stage rather than current
-	switch(stage)
-		// Temperature prerequisites higher stae = higher temp
-		if(0)
-			if(present_mix.temperature >= 1000)
-				return TRUE
-			else
-				failed_reason = "Temperature and plasma below 1'000 Kelvin."
-				return FALSE
-		if(1)
-			if(present_mix.temperature >= 10000)
-				return TRUE
-			else
-				failed_reason = "Temperature below 10'000 Kelvin."
-				return FALSE
-		if(2)
-			if(present_mix.temperature >= 1e6)
-				return TRUE
-			else
-				failed_reason = "Temperature below 1e6 Kelvin."
-				return FALSE
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/kick_start()
@@ -200,42 +181,6 @@
 
 	return conditions_passed
 
-/// Handle the fusion reaction, consuming gas, releasing gas and heat
-/// Gas species and mols requirements are already checked in check_fusion_req so we sure they do exist
-/obj/machinery/demon_core/proc/fusion_reaction(datum/gas_mixture/tile_mix)
-	var/list/cached_gases = tile_mix.gases
-	switch(stage)
-		// Each stage releases its own more advance gasses as well as more heat
-		if(1) //Plasmic fusion, consuming plasma, carbon dioxide: 1 P + 4 CO2 = 3 O2 + 2 BZ
-			tile_mix.temperature += 10000
-			cached_gases[/datum/gas/plasma][MOLES] -= 10
-			cached_gases[/datum/gas/carbon_dioxide][MOLES] -= 40
-			tile_mix.assert_gases(/datum/gas/oxygen, /datum/gas/bz)
-			cached_gases[/datum/gas/oxygen][MOLES] += 30
-			cached_gases[/datum/gas/bz][MOLES] += 20
-		if(2)// Hydrogen fusion
-			tile_mix.temperature += 1e6
-			tile_mix.assert_gases(/datum/gas/proto_nitrate, /datum/gas/healium)
-			cached_gases[/datum/gas/tritium][MOLES] -= 7
-			cached_gases[/datum/gas/hydrogen][MOLES] -= 8
-			cached_gases[/datum/gas/proto_nitrate][MOLES] += 5
-			cached_gases[/datum/gas/healium][MOLES] += 10
-		if(3)// Heavy gas fusion
-			tile_mix.temperature += 1e10
-			tile_mix.assert_gases(/datum/gas/zauker, /datum/gas/halon)
-			cached_gases[/datum/gas/pluoxium][MOLES] -= 24
-			cached_gases[/datum/gas/freon][MOLES] -= 16
-			cached_gases[/datum/gas/zauker][MOLES] += 5
-			cached_gases[/datum/gas/halon][MOLES] += 36
-
-/obj/machinery/demon_core/proc/begin_emission()
-	//prepare the gases to eject and directions
-	var/chosen_dir = pick(GLOB.cardinals)
-	var/datum/gas_mixture/removed = internal_mix.remove_ratio(0.8)
-	var/list/cached_gas = removed.gases
-	var/turf/starting_turf = loc
-	var/list/jet_line = list(get_step(starting_turf, chosen_dir))
-
 
 	for(var/turf/ref in jet_line)
 		if(jet_line.len >= 4)
@@ -273,22 +218,6 @@
 			too_close.throw_at(target_turf, 2, 2)
 	playsound(src, 'sound/effects/thump.ogg', 100)
 
-/obj/machinery/demon_core/update_appearance(updates)
-	. = ..()
-	var/internal_temp = internal_mix.return_temperature()
-	if(internal_temp <= 1000)
-		icon_state = "stage_[1]"
-	if(internal_temp <= 5000)
-		icon_state = "stage_[2]"
-	if(internal_temp <= 10000)
-		icon_state = "stage_[3]"
-	if(internal_temp <= 25000)
-		icon_state = "stage_[4]"
-	if(internal_temp <= 50000)
-		icon_state = "stage_[5]"
-	if(internal_temp <= 1e6)
-		icon_state = "stage_[6]"
-
 
 //Contain all the player interaction code for the core
 
@@ -321,7 +250,11 @@
 		if(!user.transferItemToLoc(tool, src))
 			to_chat(user, span_warning("[tool] is stuck to your hand."))
 			return
-
+	if(istype(tool, /obj/item/plasma_core))
+		core = tool
+		if(!user.transferItemToLoc(tool, src))
+			to_chat(user, span_warning("[tool] is stuck to your hand."))
+			return
 	to_chat(user, span_notice("You insert [tool] into [src]"))
 
 	return ..()
