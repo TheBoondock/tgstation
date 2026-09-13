@@ -436,10 +436,13 @@
 
 /obj/item/transfer_valve/maxcap_test/Initialize(mapload)
 	. = ..()
-	tank_one = new /obj/item/tank/internals/plasma (src)
-	tank_two = new /obj/item/tank/internals/oxygen (src)
+	tank_one = new /obj/item/tank/internals/plasma/empty (src)
+	tank_two = new /obj/item/tank/internals/oxygen/empty (src)
 
-	tank_one.air_contents.set_temperature(1000)
+
+	tank_one.air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)* tank_two.volume/(R_IDEAL_GAS_EQUATION*2000))
+	tank_two.air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)* tank_two.volume/(R_IDEAL_GAS_EQUATION*80))
+	tank_one.air_contents.set_temperature(2000)
 	tank_two.air_contents.set_temperature(80)
 
 	update_appearance()
