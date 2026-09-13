@@ -31,6 +31,8 @@
 	var/obj/item/fusion_core/our_core
 	///Our internal energy that is used to catalyze reaction
 	var/internal_energy
+	///Active state of fusion
+	var/fusing = FALSE
 
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
@@ -50,7 +52,7 @@
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
 
-	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
+	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(check_explosion))
 
 
 /obj/machinery/demon_core/Destroy(force)
@@ -68,27 +70,12 @@
 		return
 	if(isclosedturf(local_turf))
 		return
+	area_of_effect += local_turf.atmos_adjacent_turfs
 	if(isnull(our_core))
 		return
-	if(our_core.min_temperature < local_env.temperature)
-		return
+	if(local_env.temperature >= our_core.min_temperature && fusing)
+		catalyze_area(area_of_effect)
 
-	area_of_effect += local_turf.atmos_adjacent_turfs
-	//Handle catalyzing adjacent air mixes
-	for(var/turf/adjacent_turf in area_of_effect)
-		if(!istype(adjacent_turf))//We are in a crate or somewhere that isn't turf, if we return to turf resume processing but for now.
-			return
-		if(isclosedturf(adjacent_turf))
-			return
-
-		var/datum/gas_mixture/environment = adjacent_turf.return_air()
-
-		if(!environment)
-			return
-
-		catalyze_reaction(environment)
-
-		air_update_turf(FALSE, FALSE)
 
 /obj/machinery/demon_core/update_icon_state(updates)
 	. = ..()
@@ -103,7 +90,8 @@
 		return
 	kick_start()
 
-/obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
+/obj/machinery/demon_core/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
+	. = ..()
 	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
 		if(istype(tool, /obj/item/transfer_valve))
 			var/obj/item/transfer_valve/valve = tool
@@ -122,6 +110,7 @@
 
 	if(istype(tool, /obj/item/fusion_core/plasma))
 		our_core = tool
+		icon_state ="pedestal_plasma"
 		SSair.start_processing_machine(src)
 
 	if(!user.transferItemToLoc(tool, src))
@@ -148,6 +137,24 @@
 			return FALSE
 	return TRUE
 
+/// Itereate through given turfs and catalyze the reaction
+/obj/machinery/demon_core/proc/catalyze_area(list/list_of_turfs)
+	//Handle catalyzing adjacent air mixes
+	for(var/turf/adjacent_turf in list_of_turfs)
+		if(!istype(adjacent_turf))//We are in a crate or somewhere that isn't turf, if we return to turf resume processing but for now.
+			return
+		if(isclosedturf(adjacent_turf))
+			return
+
+		var/datum/gas_mixture/environment = adjacent_turf.return_air()
+
+		if(!environment)
+			return
+
+		catalyze_reaction(environment)
+
+		air_update_turf(FALSE, FALSE)
+
 /obj/machinery/demon_core/proc/catalyze_reaction(datum/gas_mixture/target_mix)
 	target_mix.fuse()
 
@@ -173,7 +180,7 @@
 	SSair.stop_processing_machine(src)
 	return
 
-/obj/machinery/demon_core/proc/begin_fusion(atom/source, list/arguments)
+/obj/machinery/demon_core/proc/check_explosion(atom/source, list/arguments)
 	SIGNAL_HANDLER
 
 	. = COMSIG_CANCEL_EXPLOSION
@@ -181,6 +188,7 @@
 	var/heavy = arguments[EXARG_KEY_DEV_RANGE]
 	var/medium = arguments[EXARG_KEY_HEAVY_RANGE]
 	var/light = arguments[EXARG_KEY_LIGHT_RANGE]
+	var/range = max(light, medium, heavy)
 	var/explosion_range = max(heavy, medium, light, 0)
 	var/turf/location = get_turf(src)
 

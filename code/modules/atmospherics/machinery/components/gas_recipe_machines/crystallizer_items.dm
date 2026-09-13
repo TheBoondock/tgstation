@@ -55,11 +55,14 @@
 	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
 	///Minimum temperature needed to start fusion
 	var/min_temperature
+	///Minimum explosion range needed to start fusion
+	var/explosion_range
 
 /obj/item/fusion_core/plasma
 	name = "Plasma core"
 	desc = "Plasma and nitrogen condensed into a core capable of reduction the normal requirements for fusion."
 	icon_state = "plasma_core"
 	min_temperature = 10000
+	explosion_range = 20
 
 
