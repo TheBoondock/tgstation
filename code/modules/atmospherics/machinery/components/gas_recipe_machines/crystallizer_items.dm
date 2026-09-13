@@ -51,10 +51,15 @@
 	do_chem_smoke(cloud_size, src, get_turf(src), list(/datum/reagent/nitrium_low_metabolization = 3, /datum/reagent/nitrium_high_metabolization = 2))
 	qdel(src)
 
-/obj/item/plasma_core
+/obj/item/fusion_core
+	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
+	///Minimum temperature needed to start fusion
+	var/min_temperature
+
+/obj/item/fusion_core/plasma
 	name = "Plasma core"
 	desc = "Plasma and nitrogen condensed into a core capable of reduction the normal requirements for fusion."
-	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
 	icon_state = "plasma_core"
+	min_temperature = 10000
 
 

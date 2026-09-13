@@ -23,14 +23,14 @@
 	var/obj/item/grenade/inserted_grenade
 	/// The single tank assembly bomb inserted into the core.
 	var/obj/item/tank/inserted_tank
-	/// list of payloads
-	var/list/payloads
 	///Our internal radio
 	var/obj/item/radio/radio
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
 	///The inserted core
-	var/obj/item/core
+	var/obj/item/fusion_core/our_core
+	///Our internal energy that is used to catalyze reaction
+	var/internal_energy
 
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
@@ -49,21 +49,33 @@
 	radio.keyslot = new radio_key
 	radio.set_listening(FALSE)
 	radio.recalculateChannels()
-	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
 
-	payloads = list(inserted_ttv, inserted_tank, inserted_grenade)
+	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(begin_fusion))
 
 
 /obj/machinery/demon_core/Destroy(force)
 	. = ..()
 	UnregisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION)
 	QDEL_NULL(radio)
-	payloads = null
 
 /obj/machinery/demon_core/process_atmos()
-	//loop through adjacent turfs  to react
+	//Preliminary checks
 	var/turf/local_turf = loc
-	for(var/turf/adjacent_turf in local_turf.atmos_adjacent_turfs)
+	var/datum/gas_mixture/local_env = loc.return_air()
+	var/list/area_of_effect = list(loc)
+
+	if(!istype(local_turf))
+		return
+	if(isclosedturf(local_turf))
+		return
+	if(isnull(our_core))
+		return
+	if(our_core.min_temperature < local_env.temperature)
+		return
+
+	area_of_effect += local_turf.atmos_adjacent_turfs
+	//Handle catalyzing adjacent air mixes
+	for(var/turf/adjacent_turf in area_of_effect)
 		if(!istype(adjacent_turf))//We are in a crate or somewhere that isn't turf, if we return to turf resume processing but for now.
 			return
 		if(isclosedturf(adjacent_turf))
@@ -78,10 +90,55 @@
 
 		air_update_turf(FALSE, FALSE)
 
-/obj/machinery/demon_core/update_appupdate_icon_stateearance(updates)
+/obj/machinery/demon_core/update_icon_state(updates)
 	. = ..()
-	icon_state = "pedestal_[core]"
 	return ..()
+
+//Contain all the player interaction code for the core
+
+/obj/machinery/demon_core/interact(mob/user)
+	. = ..()
+	if(!check_area())
+		say(failed_reason)
+		return
+	kick_start()
+
+/obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
+	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
+		if(istype(tool, /obj/item/transfer_valve))
+			var/obj/item/transfer_valve/valve = tool
+			if(!valve.ready())
+				say("[valve] is incomplete.")
+				return
+			inserted_ttv = tool
+		else if(istype(tool, /obj/item/grenade))
+			inserted_grenade = tool
+		else if(istype(tool, /obj/item/tank))
+			var/obj/item/tank/ref_tank = tool
+			if(!ref_tank.bomb_status)
+				say("Single tank bomb incomplete.")
+				return
+			inserted_tank = tool
+
+	if(istype(tool, /obj/item/fusion_core/plasma))
+		our_core = tool
+		SSair.start_processing_machine(src)
+
+	if(!user.transferItemToLoc(tool, src))
+		to_chat(user, span_warning("[tool] is stuck to your hand."))
+		return
+	to_chat(user, span_notice("You insert [tool] into [src]"))
+
+	return ..()
+
+/obj/machinery/demon_core/crowbar_act(mob/living/user, obj/item/tool)
+	. = ..()
+	if(inserted_ttv)
+		inserted_ttv.forceMove(drop_location())
+	else if(inserted_grenade)
+		inserted_grenade.forceMove(drop_location())
+	else if(inserted_tank)
+		inserted_tank.forceMove(drop_location())
 
 /// Check the area surrounding the core to make sure its open and its clear from disturbances
 /obj/machinery/demon_core/proc/check_area()
@@ -110,12 +167,6 @@
 	inserted_grenade?.detonate()
 	inserted_tank?.ignite()
 
-/// Prepare our fusion core to advance to next stage/power level/fusion tier whatever you call it
-/obj/machinery/demon_core/proc/ready_to_advance()
-	if(src in SSair.atmos_machinery)
-		say("Fusion core stabilized, ready for higher fusion reaction. Awaiting kick start...")
-		SSair.stop_processing_machine(src)
-	return
 /// Stop processing since we can no longer sustain a reaction
 /obj/machinery/demon_core/proc/fail_to_sustain()
 	say("Insufficient heat and fuel to sustain fusion, core reaction halted!")
@@ -140,12 +191,10 @@
 	var/capped_heavy = min(GLOB.MAX_EX_DEVESTATION_RANGE * cap_multiplier, heavy)
 	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
 	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy, capped_medium)
-
-	for(var/ref_payload in payloads)
-		ref_payload = null
-	SSair.start_processing_machine(src)
+	inserted_grenade = null
+	inserted_tank = null
+	inserted_ttv = null
 	COOLDOWN_START(src, kickstart_cd, 2 MINUTES)
-	addtimer(CALLBACK(src, PROC_REF(ready_to_advance)), 2 MINUTES)
 	return
 
 
@@ -170,49 +219,4 @@
 	playsound(src, 'sound/effects/thump.ogg', 100)
 
 
-//Contain all the player interaction code for the core
-
-/obj/machinery/demon_core/interact(mob/user)
-	. = ..()
-	if(!check_area())
-		say(failed_reason)
-		return
-	kick_start()
-
-/obj/machinery/demon_core/attacked_by(obj/item/tool, mob/living/user, list/modifiers, list/attack_modifiers)
-	if(isnull(inserted_ttv) && isnull(inserted_tank) && isnull(inserted_grenade))
-		if(istype(tool, /obj/item/transfer_valve))
-			var/obj/item/transfer_valve/valve = tool
-			if(!valve.ready())
-				say("[valve] is incomplete.")
-				return
-			inserted_ttv = tool
-		else if(istype(tool, /obj/item/grenade))
-			inserted_grenade = tool
-		else if(istype(tool, /obj/item/tank))
-			var/obj/item/tank/ref_tank = tool
-			if(!ref_tank.bomb_status)
-				say("Single tank bomb incomplete.")
-				return
-			inserted_tank = tool
-		if(!user.transferItemToLoc(tool, src))
-			to_chat(user, span_warning("[tool] is stuck to your hand."))
-			return
-	if(istype(tool, /obj/item/plasma_core))
-		core = tool
-		if(!user.transferItemToLoc(tool, src))
-			to_chat(user, span_warning("[tool] is stuck to your hand."))
-			return
-	to_chat(user, span_notice("You insert [tool] into [src]"))
-
-	return ..()
-
-/obj/machinery/demon_core/crowbar_act(mob/living/user, obj/item/tool)
-	. = ..()
-	if(inserted_ttv)
-		inserted_ttv.forceMove(drop_location())
-	else if(inserted_grenade)
-		inserted_grenade.forceMove(drop_location())
-	else if(inserted_tank)
-		inserted_tank.forceMove(drop_location())
 

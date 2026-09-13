@@ -5,8 +5,8 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
  */
 /proc/fusion_reaction_list()
 	var/list/built_reaction_list = list()
-	for(var/reaction_path in subtypesof(/datum/fusion_reaction))
-		var/datum/fusion_reaction/reaction = new reaction_path()
+	for(var/reaction_path in subtypesof(/datum/gas_reaction/fusion_reaction))
+		var/datum/gas_reaction/fusion_reaction/reaction = new reaction_path()
 
 /datum/gas_reaction/fusion_reaction
 	abstract_type = /datum/gas_reaction/fusion_reaction
