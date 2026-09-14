@@ -440,8 +440,8 @@
 	tank_two = new /obj/item/tank/internals/oxygen/empty (src)
 
 
-	tank_one.air_contents.set_gas(/datum/gas/plasma, (10*ONE_ATMOSPHERE)* tank_two.volume/(R_IDEAL_GAS_EQUATION*2000))
-	tank_two.air_contents.set_gas(/datum/gas/oxygen, (10*ONE_ATMOSPHERE)* tank_two.volume/(R_IDEAL_GAS_EQUATION*80))
+	tank_one.air_contents.set_gas(/datum/gas/hypernoblium, (10*ONE_ATMOSPHERE)* tank_two.volume/(R_IDEAL_GAS_EQUATION*2000))
+	tank_two.air_contents.set_gas(/datum/gas/antinoblium, (10*ONE_ATMOSPHERE)* tank_two.volume/(R_IDEAL_GAS_EQUATION*80))
 	tank_one.air_contents.set_temperature(2000)
 	tank_two.air_contents.set_temperature(80)
 

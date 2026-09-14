@@ -45,7 +45,7 @@
 #define PLASMA_MINIMUM_BURN_TEMPERATURE FIRE_MINIMUM_TEMPERATURE_TO_EXIST
 /// Upper temperature ceiling for plasmafire reaction calculations for fuel consumption
 #define PLASMA_UPPER_TEMPERATURE (PLASMA_MINIMUM_BURN_TEMPERATURE + 1270)
-/// The maximum and default amount of plasma consumed as oxydizer per mole of plasma burnt.
+/// The maximum and default amount of oxygen consumed as oxydizer per mole of plasma burnt.
 #define OXYGEN_BURN_RATIO_BASE 1.4
 /// Multiplier for plasmafire with O2 moles * PLASMA_OXYGEN_FULLBURN for the maximum fuel consumption
 #define PLASMA_OXYGEN_FULLBURN 10
@@ -274,5 +274,17 @@
 #define ELECTROLYSIS_ARGUMENT_SUPERMATTER_POWER "electrolyzer_supermatter_power"
 
 // Fusion
-/// Plasmic fusion
+/// Plasmic fusion minimum temperature
 #define PLASMIC_FUSION_MIN 10000
+/// Plasmic fusion temperature threshold for triple fusion
+#define PLASMIC_FUSION_HIGH_THRESHOLD 27000
+/// Minimum mole count of plasma
+#define PLASMIC_FUSION_MIN_PLASMA 100
+/// MInimum mole count of hydrogen
+#define PLASMIC_FUSION_MIN_HYDROGEN 50
+/// Plasmic fusion base consumption rate. At maximum consumes 10 moles per tick
+#define PLASMIC_FUSION_BASE_RATE 10
+/// Plasmic fusion high consumption rate. At maximum consumes 1/8 of total moles per tick
+#define PLASMIC_FUSION_HIGH_RATE 8
+/// Energy release of the fusion reaction
+#define PLASMIC_FUSION_ENERGY_RELEASE 7.8e6
