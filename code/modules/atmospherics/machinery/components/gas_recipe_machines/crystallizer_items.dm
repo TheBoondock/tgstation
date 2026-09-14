@@ -55,6 +55,10 @@
 	icon = 'icons/obj/machines/atmospherics/fusion.dmi'
 	///Minimum temperature needed to start fusion
 	var/min_temperature
+	///Threshold of which the core becomes unstable
+	var/instability_threshold
+	///Maximum temperature before melting
+	var/max_temperature
 	///Minimum explosion range needed to start fusion
 	var/explosion_req
 	///Multiplier to the internal energy produced
@@ -64,8 +68,10 @@
 	name = "Plasma core"
 	desc = "Plasma and nitrogen condensed into a core capable of reduction the normal requirements for fusion."
 	icon_state = "plasma_core"
-	min_temperature = 10000
+	min_temperature = 6500
+	instability_threshold = 28000
+	max_temperature = 35000
 	explosion_req = 20
-	energy_multiplier = 1
+	energy_multiplier = 2
 
 

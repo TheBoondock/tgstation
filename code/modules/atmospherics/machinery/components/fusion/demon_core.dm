@@ -31,6 +31,8 @@
 	var/internal_energy = 0
 	///Active state of fusion
 	var/fusing = FALSE
+	///Stability status of the core
+	var/destabilizing = FALSE
 
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
@@ -39,7 +41,8 @@
 
 	var/failed_reason
 
-
+	STATIC_COOLDOWN_DECLARE(emission_effects)
+	STATIC_COOLDOWN_DECLARE(kick_start_attempt)
 
 
 /obj/machinery/demon_core/Initialize(mapload)
@@ -52,6 +55,7 @@
 	RegisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION, PROC_REF(check_explosion))
 
 
+
 /obj/machinery/demon_core/Destroy(force)
 	. = ..()
 	UnregisterSignal(src, COMSIG_ATOM_INTERNAL_EXPLOSION)
@@ -60,18 +64,37 @@
 /obj/machinery/demon_core/process_atmos()
 	//Preliminary checks
 	var/turf/local_turf = loc
-	var/datum/gas_mixture/local_env = loc.return_air()
-	var/list/area_of_effect = list(loc)
-
 	if(!istype(local_turf))
 		return
 	if(isclosedturf(local_turf))
 		return
+
+	var/datum/gas_mixture/local_env = loc.return_air()
+	var/list/area_of_effect = list(loc)
+	var/our_temp = local_env.return_temperature()
 	area_of_effect += local_turf.atmos_adjacent_turfs
 	if(isnull(our_core))
 		return
-	if((local_env.temperature >= our_core.min_temperature) && fusing)
+	var/minimum_temp = our_core.min_temperature
+	var/instability_temp = our_core.instability_threshold
+	var/maximum_temp = our_core.max_temperature
+
+	if(our_temp >= minimum_temp && our_temp <= instability_temp)
+		if(!fusing && COOLDOWN_FINISHED(src, kick_start_attempt))
+			radio.talk_into(src, "Temperature threshold reached! Initiating implosion.", FREQ_ENGINEERING, list(SPAN_ROBOT))
+			kick_start()
+			return
+		destabilizing = FALSE
 		catalyze_area(area_of_effect)
+	else if(our_temp >= instability_temp && our_temp <= maximum_temp)
+		if(!destabilizing)
+			radio.talk_into(src, "Caution! Core stability decreasing.", FREQ_ENGINEERING, list(SPAN_ROBOT))
+		destabilizing = TRUE
+		if(COOLDOWN_FINISHED(src, emission_effects))
+			emission()
+	else if(our_temp >= maximum_temp)
+		melt_down()
+
 
 
 /obj/machinery/demon_core/update_icon_state(updates)
@@ -131,7 +154,8 @@
 /obj/machinery/demon_core/hitby(atom/movable/hit_by, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
 	. = ..()
 	if(istype(hit_by, /obj/projectile/energy/nuclear_particle))
-		internal_energy ++
+		// Half of the energy is recovered
+		internal_energy += 1 / 2
 
 /// Itereate through given turfs and catalyze the reaction
 /obj/machinery/demon_core/proc/catalyze_area(list/list_of_turfs)
@@ -148,16 +172,18 @@
 			return
 
 		catalyze_reaction(environment, adjacent_turf)
-
+		internal_energy --
 		air_update_turf(FALSE, FALSE)
 
 /obj/machinery/demon_core/proc/catalyze_reaction(datum/gas_mixture/target_mix, turf/open/target_turf)
-	internal_energy -= target_mix.fuse(target_turf)
+
+	target_mix.fuse(target_turf)
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/kick_start()
 	if(!inserted_ttv && !inserted_tank)
 		say("No explosive payload detected, canceling kick start.")
+		COOLDOWN_START(src, kick_start_attempt, 10 SECONDS)
 		return
 	for(var/message_type in message_list)
 		radio.talk_into(src, message_type, FREQ_ENGINEERING, list(SPAN_ROBOT))
@@ -189,23 +215,23 @@
 		cap_multiplier = 1
 	var/capped_heavy = min(GLOB.MAX_EX_DEVESTATION_RANGE * cap_multiplier, heavy)
 	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
-	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy, capped_medium)
+	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy / 2, capped_medium)
 	if(our_core.explosion_req <= explosion_range)
 		fusing = TRUE
 		internal_energy = explosion_range * our_core.energy_multiplier
 	inserted_tank = null
 	inserted_ttv = null
+	COOLDOWN_START(src, kick_start_attempt, 10 SECONDS)
 
 	return
 
 
-
-// Impact and visual effects of an emision
-/obj/machinery/demon_core/proc/emission_effects()
-	for(var/turf/ref_turf in view(4, loc))
+// Create special effects when instability threshold is passed
+/obj/machinery/demon_core/proc/emission()
+	for(var/turf/ref_turf in view(5, loc))
 		if(prob(30))
-			ref_turf.Shake(duration = 1, shake_interval = 0.2)
-	//if(stage >= 2)// after level 2 we create shockwave
+			ref_turf.Shake(duration = 0.3)
+	/*
 	for(var/obj/thing in oview(4, loc))
 		if(thing.anchored)
 			continue
@@ -217,7 +243,15 @@
 			var/mob_dir = get_dir(src, too_close)
 			var/turf/target_turf = get_ranged_target_turf(too_close, mob_dir, 2)
 			too_close.throw_at(target_turf, 2, 2)
+
 	playsound(src, 'sound/effects/thump.ogg', 100)
+	*/
+	COOLDOWN_START(src, emission_effects, 10 SECONDS)
 
+/obj/machinery/demon_core/proc/melt_down()
+	QDEL_NULL(our_core)
+	stop_fusing()
 
-
+/obj/machinery/demon_core/proc/stop_fusing()
+	destabilizing = FALSE
+	fusing = FALSE

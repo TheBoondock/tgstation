@@ -760,7 +760,6 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
  * Calls for fusion_reaction reactions on the gas_mixture.
  */
 /datum/gas_mixture/proc/fuse(turf/open/target_turf)
-	var/number_of_reaction = 0
 	for(var/reaction in GLOB.fusion_reactions)
 		var/datum/gas_reaction/fusion_reaction/current_reaction = GLOB.fusion_reactions[reaction]
 
@@ -768,7 +767,6 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 			continue
 		target_turf.fire_nuclear_particle()
 		current_reaction.react(air_mixture = src)
-		number_of_reaction ++
 
 	garbage_collect()
 	return number_of_reaction
