@@ -769,7 +769,6 @@ GLOBAL_LIST_INIT(meta_gas_info, meta_gas_list()) //see ATMOSPHERICS/gas_types.dm
 		current_reaction.react(air_mixture = src)
 
 	garbage_collect()
-	return number_of_reaction
 
 /// Convert a gas mixture to a string (ie. "o2=22;n2=82;TEMP=180")
 /// Rounds all temperature and gases to 0.01 and skips any gases less than that amount

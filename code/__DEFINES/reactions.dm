@@ -288,3 +288,18 @@
 #define PLASMIC_FUSION_HIGH_RATE 8
 /// Energy release of the fusion reaction
 #define PLASMIC_FUSION_ENERGY_RELEASE 7.8e6
+
+/// Hydrogen fusion minimum temperature
+#define HYDROGEN_FUSION_MIN 50000
+/// Hydrogen fusion temperature threshold for triple fusion
+#define HYDROGEN_FUSION_HIGH_THRESHOLD 115000
+/// Minimum mole count of tritium
+#define HYDROGEN_FUSION_MIN_TRITIUM 500
+/// MInimum mole count of hydrogen
+#define HYDROGEN_FUSION_MIN_HYDROGEN 800
+/// Hydrogen fusion base consumption rate. At minimum consumes 35 moles per tick at equal ratio of trit:hydro
+#define HYDROGEN_FUSION_BASE_RATE 35
+/// Hydrogen fusion high consumption rate. At maximum consumes 1/6 of total moles per tick
+#define HYDROGEN_FUSION_HIGH_RATE 60
+/// Energy release of the fusion reaction
+#define HYDROGEN_FUSION_ENERGY_RELEASE 8.3e7

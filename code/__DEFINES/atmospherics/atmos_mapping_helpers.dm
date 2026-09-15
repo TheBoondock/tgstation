@@ -52,6 +52,7 @@
 #define ATMOS_TANK_HELIUM GAS_HELIUM + "=100000;TEMP=293.15"
 #define ATMOS_TANK_ANTINOBLIUM GAS_ANTINOBLIUM + "=100000;TEMP=293.15"
 #define ATMOS_TANK_AIRMIX GAS_O2 + "=2644;" + GAS_N2 + "=10580;TEMP=293.15"
+#define ATMOS_TANK_PLASMIC_FUSION_MIX GAS_PLASMA + "=1000;TEMP=7000" + GAS_HYDROGEN + "=1000;TEMP=1000"
 
 //LAVALAND
 /// what pressure you have to be under to increase the effect of equipment meant for lavaland

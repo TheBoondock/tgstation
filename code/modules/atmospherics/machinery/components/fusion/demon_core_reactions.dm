@@ -78,14 +78,15 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 	air_mixture.adjust_gas(/datum/gas/hydrogen, -1 * moles_consumed)
 
 	if(energy_dense)
-		// 1/3 become bz 2/3 become He
-		air_mixture.adjust_gas(/datum/gas/bz, moles_consumed / 3)
-		air_mixture.adjust_gas(/datum/gas/helium, moles_consumed / 3 * 2)
+		// 100% of product is He
+		air_mixture.adjust_gas(/datum/gas/helium, moles_consumed * 2)
 	else
+		// 2/3 of product become Bz the rest become He
 		air_mixture.adjust_gas(/datum/gas/helium, moles_consumed / 2)
+		air_mixture.adjust_gas(/datum/gas/bz, moles_consumed / 3)
 
 	var/new_heat_capacity = air_mixture.heat_capacity()
-	var/energy_released = PLASMIC_FUSION_ENERGY_RELEASE
+	var/energy_released = PLASMIC_FUSION_ENERGY_RELEASE * consumed_amount
 	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
 		air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_released) / new_heat_capacity), TCMB)
 
@@ -97,13 +98,29 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 	id = "hydrogen_fusion"
 	desc = "Fusion of plasma and hydrogen into heavier compounds"
 	requirements = list(
-		/datum/gas/plasma = PLASMIC_FUSION_MIN_PLASMA,
-		/datum/gas/hydrogen = PLASMIC_FUSION_MIN_HYDROGEN,
-		MIN_TEMP = PLASMIC_FUSION_MIN
+		/datum/gas/tritium = HYDROGEN_FUSION_MIN_TRITIUM,
+		/datum/gas/hydrogen = HYDROGEN_FUSION_MIN_HYDROGEN,
+		MIN_TEMP = HYDROGEN_FUSION_MIN
 	)
 	factor = list(
-			/datum/gas/plasma = "1 mole of plasma get consumed",
+			/datum/gas/tritium = "1 mole of Tritium get consumed",
 			/datum/gas/hydrogen = "1 mole of H gets produced",
-			/datum/gas/helium = "2 moles of He get produced",
-			/datum/gas/bz = "1 moles of bz gets produced at high energy",
+			/datum/gas/proto_nitrate = "2 moles of He get produced",
+			/datum/gas/healium = "1 moles of bz gets produced at high energy",
 		)
+/datum/gas_reaction/fusion_reaction/hydrogen_fusion/react(datum/gas_mixture/air_mixture)
+	var/list/cached_moles = air_mixture.moles
+	var/old_heat_capacity = air_mixture.heat_capacity()
+	//Higher tritium:hydrogen ratio lead to more burn rate
+	var/moles_ratio = cached_moles[/datum/gas/tritium] / cached_moles[/datum/gas/hydrogen]
+	var/fusion_burn_rate = moles_ratio * HYDROGEN_FUSION_BASE_RATE
+
+	air_mixture.adjust_gas(/datum/gas/tritium, -1 * fusion_burn_rate)
+	air_mixture.adjust_gas(/datum/gas/hydrogen, -1 * fusion_burn_rate)
+	air_mixture.adjust_gas(/datum/gas/halon, fusion_burn_rate / 2)
+	air_mixture.adjust_gas(/datum/gas/healium, fusion_burn_rate / 2)
+
+	var/new_heat_capacity = air_mixture.heat_capacity()
+	var/energy_released = HYDROGEN_FUSION_ENERGY_RELEASE * fusion_burn_rate
+	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
+		air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_released) / new_heat_capacity), TCMB)
