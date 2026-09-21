@@ -86,7 +86,7 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 		air_mixture.adjust_gas(/datum/gas/bz, moles_consumed / 3)
 
 	var/new_heat_capacity = air_mixture.heat_capacity()
-	var/energy_released = PLASMIC_FUSION_ENERGY_RELEASE * consumed_amount
+	var/energy_released = PLASMIC_FUSION_ENERGY_RELEASE * moles_consumed
 	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
 		air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_released) / new_heat_capacity), TCMB)
 

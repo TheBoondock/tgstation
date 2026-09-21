@@ -243,6 +243,11 @@
 	greyscale_colors = CIRCUIT_COLOR_ENGINEERING
 	build_path = /obj/machinery/computer/turbine_computer
 
+/obj/item/circuitboard/computer/demon_core
+	name = "Fusion mMonitor Console"
+	greyscale_colors = CIRCUIT_COLOR_ENGINEERING
+	build_path = /obj/machinery/computer/core_monitor
+
 //Generic
 
 /obj/item/circuitboard/computer/arcade/amputation

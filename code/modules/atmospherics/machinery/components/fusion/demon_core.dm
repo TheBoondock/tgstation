@@ -26,13 +26,27 @@
 	///The key our internal radio uses
 	var/radio_key = /obj/item/encryptionkey/headset_eng
 	///The inserted core
-	var/obj/item/fusion_core/our_core
+	var/obj/item/fusion_core/catalyst_core
 	///Our internal energy in MeV, uses 1MeV per reaction catalyzed
 	var/internal_energy = 0
 	///Active state of fusion
 	var/fusing = FALSE
 	///Stability status of the core
 	var/destabilizing = FALSE
+	///Previous bomb size
+	var/bomb_size = 0
+	///Temperature of environment used for monitor
+	var/env_temp
+	///The minimum temp to start catalyzing
+	var/minimum_temp
+	///The temp theshold to start destabilizing
+	var/instability_temp
+	///The maximum temp that our core can handle
+	var/maximum_temp
+	///List of turfs we are acting on
+	var/list/area_of_effect
+	///Easy way to connect a computer and a turbine roundstart by setting an id on both this and the core_rotor
+	var/mapping_id
 
 
 	var/emergency_channel = null // Need null to actually broadcast, lol.
@@ -70,17 +84,12 @@
 		return
 
 	var/datum/gas_mixture/local_env = loc.return_air()
-	var/list/area_of_effect = list(loc)
-	var/our_temp = local_env.return_temperature()
-	area_of_effect += local_turf.atmos_adjacent_turfs
-	if(isnull(our_core))
+	env_temp = local_env.return_temperature()
+
+	if(isnull(catalyst_core))
 		return
 
-	var/minimum_temp = our_core.min_temperature
-	var/instability_temp = our_core.instability_threshold
-	var/maximum_temp = our_core.max_temperature
-
-	if(our_temp >= minimum_temp && our_temp <= instability_temp)
+	if(env_temp >= minimum_temp && env_temp <= instability_temp)
 		if(!fusing && COOLDOWN_FINISHED(src, implosion_attempt))
 			say("Temperature threshold reached! Initiating implosion.")
 			//radio.talk_into(src, "Temperature threshold reached! Initiating implosion.", RADIO_CHANNEL_ENGINEERING, list(SPAN_ROBOT))
@@ -91,21 +100,15 @@
 		else if(fusing)
 			destabilizing = FALSE
 			catalyze_area(area_of_effect)
-	else if(our_temp >= instability_temp && our_temp <= maximum_temp)
+	else if(env_temp >= instability_temp && env_temp <= maximum_temp)
 		if(!destabilizing)
 			radio.talk_into(src, "Caution! Core stability decreasing.", RADIO_CHANNEL_ENGINEERING, list(SPAN_ROBOT))
 		destabilizing = TRUE
 		if(COOLDOWN_FINISHED(src, emission_effects))
 			emission()
-	else if(our_temp >= maximum_temp)
+	else if(env_temp >= maximum_temp)
 		melt_down()
 
-//Contain all the player interaction code for the core
-/obj/machinery/demon_core/interact(mob/user)
-	. = ..()
-	if(!check_area())
-		say(failed_reason)
-		return
 
 /obj/machinery/demon_core/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
 	. = ..()
@@ -123,9 +126,10 @@
 				return ITEM_INTERACT_BLOCKING
 			inserted_tank = tool
 
-	if(istype(tool, /obj/item/fusion_core/plasma))
-		our_core = tool
+	if(istype(tool, /obj/item/fusion_core))
+		catalyst_core = tool
 		icon_state ="pedestal_plasma"
+		read_core(tool)
 		SSair.start_processing_machine(src)
 
 	if(!user.transferItemToLoc(tool, src))
@@ -140,13 +144,20 @@
 	inserted_ttv?.forceMove(drop_location())
 	inserted_tank?.forceMove(drop_location())
 
+/obj/machinery/demon_core/multitool_act(mob/living/user, obj/item/tool)
+	var/obj/item/multitool/multitool = tool
+	multitool.set_buffer(src)
+	to_chat(user, span_notice("You store linkage information in [tool]'s buffer."))
+
+	return ITEM_INTERACT_SUCCESS
+
 /// Check the area surrounding the core to make sure its open and its clear from disturbances
-/obj/machinery/demon_core/proc/check_area()
-	for(var/turf/ref_turf in view(2, src))
-		if(istype(ref_turf, /turf/closed))
-			failed_reason = "Reaction area obstructed! Ensured a clear 3 by 3 area to start fusion."
-			return FALSE
-	return TRUE
+/obj/machinery/demon_core/proc/check_area(turf/open/starting_turf)
+	. = TRUE
+	area_of_effect = create_atmos_zone(starting_turf)
+	if(area_of_effect >= 15) //15 turfs limit for now
+		. = FALSE
+	return
 
 /obj/machinery/demon_core/hitby(atom/movable/hit_by, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
 	. = ..()
@@ -180,6 +191,9 @@
 
 // Kick start our fusion core by detonating a payload if it succeed we get fusion if it doesnt then womp womp
 /obj/machinery/demon_core/proc/attempts_implosion()
+	if(!check_area(loc))
+		say("chamber too big!")
+		return
 	if(!inserted_ttv && !inserted_tank)
 		say("No explosive payload detected, canceling kick start.")
 		return
@@ -208,9 +222,10 @@
 	var/capped_heavy = min(GLOB.MAX_EX_DEVESTATION_RANGE * cap_multiplier, heavy)
 	var/capped_medium = min(GLOB.MAX_EX_HEAVY_RANGE * cap_multiplier, medium)
 	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy / 2, capped_medium)
-	if(our_core.explosion_req <= explosion_range)
+	bomb_size = explosion_range
+	if(catalyst_core.explosion_req <= explosion_range)
 		fusing = TRUE
-		internal_energy = explosion_range * our_core.energy_multiplier
+		internal_energy = explosion_range * catalyst_core.energy_multiplier
 	inserted_tank?.forceMove(drop_location())
 	inserted_ttv?.forceMove(drop_location())
 
@@ -240,11 +255,20 @@
 			var/mob_dir = get_dir(src, too_close)
 			var/turf/target_turf = get_ranged_target_turf(too_close, mob_dir, 2)
 			too_close.throw_at(target_turf, 2, 2)
-	QDEL_NULL(our_core)
+	QDEL_NULL(catalyst_core)
 	stop_fusing()
 
 /obj/machinery/demon_core/proc/stop_fusing()
 	destabilizing = FALSE
 	fusing = FALSE
+	minimum_temp = null
+	instability_temp = null
+	maximum_temp = null
 	SSair.stop_processing_machine(src)
-	our_core.forceMove(drop_location())
+	catalyst_core.forceMove(drop_location())
+
+///Read the value of max, min temp of the core
+/obj/machinery/demon_core/proc/read_core(obj/item/fusion_core/our_core)
+	minimum_temp = our_core.min_temperature
+	maximum_temp = our_core.max_temperature
+	instability_temp = our_core.instability_threshold
