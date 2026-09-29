@@ -146,7 +146,7 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 	var/list/cached_moles = air_mixture.moles
 	var/old_heat_capacity = air_mixture.heat_capacity()
 	//Ratio of reactants to products determines the rate
-	var/reactant_product_ratio = max((cached_moles[/datum/gas/freon] + cached_moles[/datum/gas/healium]) /cached_moles[/datum/gas/nitrium]), 0.01)
+	var/reactant_product_ratio = max((cached_moles[/datum/gas/freon] + cached_moles[/datum/gas/healium]) / (cached_moles[/datum/gas/proto_nitrate] + cached_moles[/datum/gas/nitrium]), 0.01)
 	var/moles_consumed = reactant_product_ratio * FREALIUM_FUSION_BASE_RATE
 
 	air_mixture.adjust_gas(/datum/gas/freon, -1 * moles_consumed)

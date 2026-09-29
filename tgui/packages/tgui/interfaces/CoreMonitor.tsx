@@ -27,7 +27,7 @@ const CoreDisplay = (props) => {
   const { act, data } = useBackend<CoreInfo>();
 
   return (
-    <Section title={data.fusion_core ?? 'No core'}>
+    <Section title={data.fusion_core ?? 'Empty Core Chamber'}>
       <LabeledList>
         <LabeledList.Item label="Temperature">
           <ProgressBar
@@ -41,8 +41,8 @@ const CoreDisplay = (props) => {
           />
         </LabeledList.Item>
         <LabeledList.Item label={data.payload ?? 'No payload detected'}>
-          <Button onClick={() => act('begin_implosion')} disabled={true}>
-            Activate
+          <Button onClick={() => act('begin_implosion')}>
+            Begin Implosion
           </Button>
         </LabeledList.Item>
       </LabeledList>

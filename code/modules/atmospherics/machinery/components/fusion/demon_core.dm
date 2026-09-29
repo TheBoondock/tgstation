@@ -146,6 +146,7 @@
 	. = ..()
 	inserted_ttv?.forceMove(drop_location())
 	inserted_tank?.forceMove(drop_location())
+	catalyst_core?.forceMove(drop_location())
 
 /obj/machinery/demon_core/multitool_act(mob/living/user, obj/item/tool)
 	var/obj/item/multitool/multitool = tool
@@ -154,6 +155,22 @@
 
 	return ITEM_INTERACT_SUCCESS
 
+
+/obj/machinery/demon_core/hitby(atom/movable/hit_by, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
+	. = ..()
+	if(istype(hit_by, /obj/projectile/energy/nuclear_particle))
+		// Half of the energy is recovered
+		internal_energy += 1 / 2
+
+/obj/machinery/demon_core/Exited(atom/movable/gone, direction)
+	if(gone == inserted_tank)
+		inserted_tank = null
+	if(gone == inserted_ttv)
+		inserted_ttv = null
+	if(gone == catalyst_core)
+		clear_core()
+	. = ..()
+
 /// Check the area surrounding the core to make sure its open and its clear from disturbances
 /obj/machinery/demon_core/proc/check_area(turf/open/starting_turf)
 	. = TRUE
@@ -161,12 +178,6 @@
 	if(area_of_effect.len >= 15) //15 turfs limit for now
 		. = FALSE
 	return
-
-/obj/machinery/demon_core/hitby(atom/movable/hit_by, skipcatch, hitpush, blocked, datum/thrownthing/throwingdatum)
-	. = ..()
-	if(istype(hit_by, /obj/projectile/energy/nuclear_particle))
-		// Half of the energy is recovered
-		internal_energy += 1 / 2
 
 /// Itereate through given turfs and catalyze the reaction
 /obj/machinery/demon_core/proc/catalyze_area(list/list_of_turfs)
@@ -275,3 +286,9 @@
 	minimum_temp = our_core.min_temperature
 	maximum_temp = our_core.max_temperature
 	instability_temp = our_core.instability_threshold
+
+/obj/machinery/demon_core/proc/clear_core()
+	catalyst_core = null
+	minimum_temp = 0
+	maximum_temp = 0
+	instability_temp = 0
