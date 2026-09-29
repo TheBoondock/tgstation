@@ -287,7 +287,7 @@
 /// Plasmic fusion high consumption rate. At maximum consumes 1/8 of total moles per tick
 #define PLASMIC_FUSION_HIGH_RATE 8
 /// Energy release of the fusion reaction
-#define PLASMIC_FUSION_ENERGY_RELEASE 7.8e6
+#define PLASMIC_FUSION_ENERGY_RELEASE 78000
 
 /// Hydrogen fusion minimum temperature
 #define HYDROGEN_FUSION_MIN 50000
@@ -302,4 +302,12 @@
 /// Hydrogen fusion high consumption rate. At maximum consumes 1/6 of total moles per tick
 #define HYDROGEN_FUSION_HIGH_RATE 60
 /// Energy release of the fusion reaction
-#define HYDROGEN_FUSION_ENERGY_RELEASE 8.3e7
+#define HYDROGEN_FUSION_ENERGY_RELEASE 83000
+
+///Frealium fusion minimum temperature
+#define FREALIUM_FUSION_MIN 88000
+/// Frealium fusion base consumption rate. At maximum consumes 22 moles per tick at equal ratio of trit:hydro
+#define FREALIUM_FUSION_BASE_RATE 22
+/// Frealium fusion energy release
+#define FREALIUM_FUSION_ENERGY_RELEASE 2.4e6
+

@@ -125,17 +125,20 @@
 				say("Single tank bomb incomplete.")
 				return ITEM_INTERACT_BLOCKING
 			inserted_tank = tool
+		if(!user.transferItemToLoc(tool, src))
+			to_chat(user, span_warning("[tool] is stuck to your hand."))
+			return ITEM_INTERACT_BLOCKING
+		to_chat(user, span_notice("You insert [tool] into [src]"))
 
 	if(istype(tool, /obj/item/fusion_core))
 		catalyst_core = tool
 		icon_state ="pedestal_plasma"
 		read_core(tool)
 		SSair.start_processing_machine(src)
-
-	if(!user.transferItemToLoc(tool, src))
-		to_chat(user, span_warning("[tool] is stuck to your hand."))
-		return ITEM_INTERACT_BLOCKING
-	to_chat(user, span_notice("You insert [tool] into [src]"))
+		if(!user.transferItemToLoc(tool, src))
+			to_chat(user, span_warning("[tool] is stuck to your hand."))
+			return ITEM_INTERACT_BLOCKING
+		to_chat(user, span_notice("You insert [tool] into [src]"))
 
 	return ITEM_INTERACT_SUCCESS
 
@@ -155,7 +158,7 @@
 /obj/machinery/demon_core/proc/check_area(turf/open/starting_turf)
 	. = TRUE
 	area_of_effect = create_atmos_zone(starting_turf)
-	if(area_of_effect >= 15) //15 turfs limit for now
+	if(area_of_effect.len >= 15) //15 turfs limit for now
 		. = FALSE
 	return
 

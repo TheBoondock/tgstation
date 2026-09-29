@@ -13,45 +13,39 @@ import { useBackend } from '../backend';
 import { Window } from '../layouts';
 
 type CoreInfo = {
-  core_present: BooleanLike;
+  connected_machine: BooleanLike;
   internal_energy: number;
   temp: number;
   min_temperature: number;
   max_temperature: number;
   payload: string;
+  bomsize: number;
+  fusion_core: string;
 };
-
-function stringtoboolean(boo: string) {
-  if (!boo) {
-    return false;
-  }
-  return true;
-}
 
 const CoreDisplay = (props) => {
   const { act, data } = useBackend<CoreInfo>();
 
   return (
-    <Section title="Core Status">
+    <Section title={data.fusion_core ?? 'No core'}>
       <LabeledList>
-        <ProgressBar
-          value={data.temp}
-          minValue={data.min_temperature}
-          maxValue={data.max_temperature}
-        />
-      </LabeledList>
-      <Section title={data.payload || 'Empty'}>
-        buttons=
-        {
-          <Button
-            icon={'Kickstart'}
-            selected={stringtoboolean(data.payload)}
-            onClick={() => act('begin_implosion')}
-          >
-            {data.active ? 'Online' : 'Offline'}
+        <LabeledList.Item label="Temperature">
+          <ProgressBar
+            value={data.temp ?? 0}
+            minValue={data.min_temperature}
+            maxValue={data.max_temperature}
+            ranges={{
+              good: [data.min_temperature, data.max_temperature * 0.5],
+              average: [data.max_temperature * 0.7, data.max_temperature],
+            }}
+          />
+        </LabeledList.Item>
+        <LabeledList.Item label={data.payload ?? 'No payload detected'}>
+          <Button onClick={() => act('begin_implosion')} disabled={true}>
+            Activate
           </Button>
-        }
-      </Section>
+        </LabeledList.Item>
+      </LabeledList>
     </Section>
   );
 };
@@ -62,7 +56,7 @@ const Unavailable_Core = (props) => {
       <Stack fill vertical>
         <Stack.Item textAlign="center">
           <Box style={{ margin: 'auto' }} textAlign="center" width="300px">
-            {'No core detected'}
+            {'No machine detected'}
           </Box>
         </Stack.Item>
       </Stack>
@@ -74,9 +68,9 @@ export const CoreMonitor = (props) => {
   const { data } = useBackend<CoreInfo>();
 
   return (
-    <Window width={310} height={240}>
+    <Window width={380} height={240}>
       <Window.Content>
-        {data.core_present ? <CoreDisplay /> : <Unavailable_Core />}
+        {data.connected_machine ? <CoreDisplay /> : <Unavailable_Core />}
       </Window.Content>
     </Window>
   );

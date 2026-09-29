@@ -190,3 +190,12 @@ GLOBAL_LIST_INIT(gas_recipe_meta, gas_recipes_list())
 	energy_release = -30000
 	requirements = list(/datum/gas/plasma = 500, /datum/gas/nitrogen = 250)
 	products = list(/obj/item/fusion_core/plasma = 1)
+
+/datum/gas_recipe/crystallizer/hydrogen_core
+	id = "fusion_core_hydrogen"
+	name = "Hydrogen Core"
+	min_temp = 45000
+	max_temp = 60000
+	energy_release = 200000
+	requirements = list(/datum/gas/plasma = 500, /datum/gas/nitrogen = 250)
+	products = list(/obj/item/fusion_core/plasma = 1)

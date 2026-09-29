@@ -55,22 +55,22 @@
 /obj/machinery/computer/core_monitor/ui_data(mob/user)
 	. = list()
 	var/obj/machinery/demon_core/our_core = demon_core?.resolve()
-	if(!our_core.catalyst_core)
-		.["core_present"] = FALSE
+	if(!our_core)
+		.["connected_machine"] = FALSE
 		return
 	else
-		.["core_present"] = TRUE
+		.["connected_machine"] = TRUE
 	//operation status
 	if(our_core?.catalyst_core)
 		.["min_temperature"] = our_core?.catalyst_core.min_temperature
 		.["max_temperature"] = our_core?.catalyst_core.max_temperature
-		.["stability"] = our_core.destabilizing ? "Unstable" : "Stable"
-	.["bomb_size"] = our_core.bomb_size
-	.["internal_energy"] = our_core.internal_energy
+		.["fusion_core"] = our_core.catalyst_core.name
 	.["environment_temperature"] = our_core.env_temp
 
 	//explosive parameters
-	.["payload"] = our_core?.inserted_ttv?.name || our_core??.inserted_tank.name
+	.["payload"] = our_core?.inserted_ttv?.name || our_core?.inserted_tank?.name || ""
+	.["bomb_size"] = our_core.bomb_size
+	.["internal_energy"] = our_core.internal_energy
 
 /obj/machinery/computer/core_monitor/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()

@@ -117,10 +117,44 @@ GLOBAL_LIST_INIT(fusion_reactions, fusion_reaction_list())
 
 	air_mixture.adjust_gas(/datum/gas/tritium, -1 * fusion_burn_rate)
 	air_mixture.adjust_gas(/datum/gas/hydrogen, -1 * fusion_burn_rate)
-	air_mixture.adjust_gas(/datum/gas/halon, fusion_burn_rate / 2)
-	air_mixture.adjust_gas(/datum/gas/healium, fusion_burn_rate / 2)
+	air_mixture.adjust_gas(/datum/gas/halon, fusion_burn_rate)
+	air_mixture.adjust_gas(/datum/gas/healium, fusion_burn_rate)
 
 	var/new_heat_capacity = air_mixture.heat_capacity()
 	var/energy_released = HYDROGEN_FUSION_ENERGY_RELEASE * fusion_burn_rate
+	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
+		air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_released) / new_heat_capacity), TCMB)
+
+/datum/gas_reaction/fusion_reaction/frealium_fusion
+	name = "frealium fusion"
+	id = "frealium_fusion"
+	desc = "Fusion of heavier compounds freon and healium, releasing tremendous amount of energy."
+	requirements = list(
+		/datum/gas/freon = FREALIUM_FUSION_BASE_RATE,
+		/datum/gas/healium = FREALIUM_FUSION_BASE_RATE,
+		MIN_TEMP = FREALIUM_FUSION_MIN
+	)
+	factor = list(
+			/datum/gas/freon = "1 mole of Tritium get consumed",
+			/datum/gas/healium = "1 mole of H gets produced",
+			/datum/gas/nitrium = "1 moles of bz gets produced at high energy",
+			/datum/gas/proto_nitrate = "",
+		)
+
+/datum/gas_reaction/fusion_reaction/frealium_fusion/react(datum/gas_mixture/air_mixture)
+	. = ..()
+	var/list/cached_moles = air_mixture.moles
+	var/old_heat_capacity = air_mixture.heat_capacity()
+	//Ratio of reactants to products determines the rate
+	var/reactant_product_ratio = max((cached_moles[/datum/gas/freon] + cached_moles[/datum/gas/healium]) /cached_moles[/datum/gas/nitrium]), 0.01)
+	var/moles_consumed = reactant_product_ratio * FREALIUM_FUSION_BASE_RATE
+
+	air_mixture.adjust_gas(/datum/gas/freon, -1 * moles_consumed)
+	air_mixture.adjust_gas(/datum/gas/healium, -1 * moles_consumed)
+	air_mixture.adjust_gas(/datum/gas/nitrium, moles_consumed)
+	air_mixture.adjust_gas(/datum/gas/proto_nitrate , moles_consumed)
+
+	var/new_heat_capacity = air_mixture.heat_capacity()
+	var/energy_released = FREALIUM_FUSION_ENERGY_RELEASE * moles_consumed
 	if(new_heat_capacity > MINIMUM_HEAT_CAPACITY)
 		air_mixture.temperature = max(((air_mixture.temperature * old_heat_capacity + energy_released) / new_heat_capacity), TCMB)

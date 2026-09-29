@@ -66,7 +66,7 @@
 
 /obj/item/fusion_core/plasma
 	name = "Plasma core"
-	desc = "Plasma and nitrogen condensed into a core capable of reduction the normal requirements for fusion."
+	desc = "Plasma and nitrogen condensed into a core capable of reducing the normal requirements for fusion."
 	icon_state = "plasma_core"
 	min_temperature = 6500
 	instability_threshold = 28000
@@ -74,4 +74,13 @@
 	explosion_req = 20
 	energy_multiplier = 2
 
+/obj/item/fusion_core/hydrogen
+	name = "Hydrogeyu core"
+	desc = "Hydrogen and tritium condensed into a core capable of reducing the normal requirements for fusion."
+	icon_state = "plasma_core"
+	min_temperature = 50000
+	instability_threshold = 80000
+	max_temperature = 100000
+	explosion_req = 28
+	energy_multiplier = 8
 
