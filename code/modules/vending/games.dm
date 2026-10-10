@@ -99,9 +99,9 @@
 			"name" = "pillow weapons",
 			"icon" = "bed",
 			"products" = list(
-				/obj/item/shield/mattress = 2,
-				/obj/item/spear/pillow = 1,
+				/obj/item/shield/mattress = 5,
 				/obj/item/spear/pillow = 4,
+				/obj/item/spear/pillow = 10,
 				/obj/item/pillow/clown = 2,
 				/obj/item/pillow/mime = 2,
 			)

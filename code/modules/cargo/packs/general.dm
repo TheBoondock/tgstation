@@ -270,14 +270,3 @@
 	contains = list(/obj/structure/reagent_dispensers/water_cooler/jugless = 1, /obj/item/reagent_containers/cooler_jug/punch = 1)
 	crate_name = "punch cooler crate"
 
-/datum/supply_pack/misc/pillow_weapons
-	name = "Pillow Warfare Crate"
-	desc = "Donk Co. newest product line in pillow warfare. Containing all the essential for pillow fights."
-	cost = CARGO_CRATE_VALUE * 7
-	contains = list(/obj/item/pillow/random = 4,
-					/obj/item/spear/pillow = 2,
-					/obj/item/shield/mattress = 2,
-					/obj/item/clothing/head/pillow_hood = 2,
-					/obj/item/pillow/suit_pillow = 2
-					)
-	crate_name = "pillow weapon crate"
