@@ -40,6 +40,12 @@ const CoreDisplay = (props) => {
             }}
           />
         </LabeledList.Item>
+        <LabeledList.Item label="Temperature Threshold">
+          {data.temp}/{data.min_temperature}
+          {data.temp >= data.min_temperature
+            ? 'Temperature requirement reached.'
+            : 'Chamber too cold.'}
+        </LabeledList.Item>
         <LabeledList.Item label={data.payload ?? 'No payload detected'}>
           <Button onClick={() => act('begin_implosion')}>
             Begin Implosion

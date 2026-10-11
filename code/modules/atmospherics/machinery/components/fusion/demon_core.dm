@@ -89,25 +89,8 @@
 	if(isnull(catalyst_core))
 		return
 
-	if(env_temp >= minimum_temp && env_temp <= instability_temp)
-		if(!fusing && COOLDOWN_FINISHED(src, implosion_attempt))
-			say("Temperature threshold reached! Initiating implosion.")
-			//radio.talk_into(src, "Temperature threshold reached! Initiating implosion.", RADIO_CHANNEL_ENGINEERING, list(SPAN_ROBOT))
-			COOLDOWN_START(src, implosion_attempt, 10 SECONDS)
-			sleep(1 SECONDS)
-			attempts_implosion()
-			return
-		else if(fusing)
-			destabilizing = FALSE
-			catalyze_area(area_of_effect)
-	else if(env_temp >= instability_temp && env_temp <= maximum_temp)
-		if(!destabilizing)
-			radio.talk_into(src, "Caution! Core stability decreasing.", RADIO_CHANNEL_ENGINEERING, list(SPAN_ROBOT))
-		destabilizing = TRUE
-		if(COOLDOWN_FINISHED(src, emission_effects))
-			emission()
-	else if(env_temp >= maximum_temp)
-		melt_down()
+	if(fusing && internal_energy <= 0)
+		SSair.stop_processing_machine(src)
 
 
 /obj/machinery/demon_core/item_interaction(mob/living/user, obj/item/tool, list/modifiers)
