@@ -72,10 +72,10 @@
 	instability_threshold = 28000
 	max_temperature = 35000
 	explosion_req = 20
-	energy_multiplier = 2
+	energy_multiplier = 1.7
 
 /obj/item/fusion_core/hydrogen
-	name = "Hydrogeyu core"
+	name = "Hydrogen core"
 	desc = "Hydrogen and tritium condensed into a core capable of reducing the normal requirements for fusion."
 	icon_state = "plasma_core"
 	min_temperature = 50000

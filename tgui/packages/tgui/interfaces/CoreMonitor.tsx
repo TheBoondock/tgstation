@@ -14,6 +14,7 @@ import { Window } from '../layouts';
 
 type CoreInfo = {
   connected_machine: BooleanLike;
+  active: BooleanLike;
   internal_energy: number;
   temp: number;
   min_temperature: number;
@@ -27,9 +28,16 @@ const CoreDisplay = (props) => {
   const { act, data } = useBackend<CoreInfo>();
 
   return (
-    <Section title={data.fusion_core ?? 'Empty Core Chamber'}>
+    <Section
+      title="Tokamak Reactor"
+      buttons={
+        <Button onClick={() => act('change_status')}>
+          {data.active ? 'Turn on' : 'Turn off'}
+        </Button>
+      }
+    >
       <LabeledList>
-        <LabeledList.Item label="Temperature">
+        <LabeledList.Item label="Chamber Temperature">
           <ProgressBar
             value={data.temp ?? 0}
             minValue={data.min_temperature}
@@ -39,12 +47,9 @@ const CoreDisplay = (props) => {
               average: [data.max_temperature * 0.7, data.max_temperature],
             }}
           />
-        </LabeledList.Item>
-        <LabeledList.Item label="Temperature Threshold">
-          {data.temp}/{data.min_temperature}
-          {data.temp >= data.min_temperature
-            ? 'Temperature requirement reached.'
-            : 'Chamber too cold.'}
+          <LabeledList.Item label={data.fusion_core}>
+            {data.temp}/{data.min_temperature}
+          </LabeledList.Item>
         </LabeledList.Item>
         <LabeledList.Item label={data.payload ?? 'No payload detected'}>
           <Button onClick={() => act('begin_implosion')}>

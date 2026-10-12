@@ -29,6 +29,8 @@
 	var/obj/item/fusion_core/catalyst_core
 	///Our internal energy in MeV, uses 1MeV per reaction catalyzed
 	var/internal_energy = 0
+	///Active state of the machine
+	var/active = FALSE
 	///Active state of fusion
 	var/fusing = FALSE
 	///Stability status of the core
@@ -114,14 +116,13 @@
 		to_chat(user, span_notice("You insert [tool] into [src]"))
 
 	if(istype(tool, /obj/item/fusion_core))
-		catalyst_core = tool
-		icon_state ="pedestal_plasma"
-		read_core(tool)
-		SSair.start_processing_machine(src)
 		if(!user.transferItemToLoc(tool, src))
 			to_chat(user, span_warning("[tool] is stuck to your hand."))
 			return ITEM_INTERACT_BLOCKING
+		catalyst_core = tool
+		icon_state ="pedestal_plasma"
 		to_chat(user, span_notice("You insert [tool] into [src]"))
+		read_core(tool)
 
 	return ITEM_INTERACT_SUCCESS
 
@@ -221,6 +222,7 @@
 	SSexplosions.shake_the_room(location, explosion_range, (capped_heavy * 15) + (capped_medium * 20), capped_heavy / 2, capped_medium)
 	bomb_size = explosion_range
 	if(catalyst_core.explosion_req <= explosion_range)
+		sleep(5 SECONDS)
 		fusing = TRUE
 		internal_energy = explosion_range * catalyst_core.energy_multiplier
 	inserted_tank?.forceMove(drop_location())
@@ -258,11 +260,8 @@
 /obj/machinery/demon_core/proc/stop_fusing()
 	destabilizing = FALSE
 	fusing = FALSE
-	minimum_temp = null
-	instability_temp = null
-	maximum_temp = null
-	SSair.stop_processing_machine(src)
-	catalyst_core.forceMove(drop_location())
+
+
 
 ///Read the value of max, min temp of the core
 /obj/machinery/demon_core/proc/read_core(obj/item/fusion_core/our_core)
@@ -275,3 +274,12 @@
 	minimum_temp = 0
 	maximum_temp = 0
 	instability_temp = 0
+	catalyst_core.forceMove(drop_location())
+
+/obj/machinery/demon_core/proc/change_activity()
+	if(active)
+		SSair.stop_processing_machine(src)
+		active = FALSE
+	else
+		SSair.start_processing_machine(src)
+		active = TRUE

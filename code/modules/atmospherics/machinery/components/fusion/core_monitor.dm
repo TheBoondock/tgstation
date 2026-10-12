@@ -66,6 +66,7 @@
 		.["max_temperature"] = our_core?.catalyst_core.max_temperature
 		.["fusion_core"] = our_core.catalyst_core.name
 	.["environment_temperature"] = our_core.env_temp
+	.["activity"] = our_core.active
 
 	//explosive parameters
 	.["payload"] = our_core?.inserted_ttv?.name || our_core?.inserted_tank?.name || ""
@@ -83,4 +84,10 @@
 			if(!our_core)
 				return FALSE
 			our_core.attempts_implosion()
+			return TRUE
+		if("change_status")
+			var/obj/machinery/demon_core/our_core = demon_core?.resolve()
+			if(!our_core)
+				return FALSE
+			our_core.change_activity()
 			return TRUE
